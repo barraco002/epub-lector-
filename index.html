@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="description" content="Lunaria: lector de EPUB con temas, tipografía editable, pomodoro, sonidos ambientales y gamificación." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23ff6719'/%3E%3Ccircle cx='42' cy='24' r='24' fill='%23fff7f0'/%3E%3C/svg%3E" />
+    <title>Lunaria</title>
+    <script>
+      // Evita el destello blanco: pinta el fondo del último tema antes de cargar la app
+      try {
+        document.documentElement.style.background = localStorage.getItem('lunaria.bg') || '#ffffff'
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

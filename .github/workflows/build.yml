@@ -1,0 +1,103 @@
+name: Compilar Lunaria
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pruebas:
+    name: Tipos, tests y pruebas en navegador
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: informe-playwright
+          path: test-results/
+          retention-days: 7
+
+  compilar:
+    name: APK de Android y versión para PC
+    needs: pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      VERSION_CODE: ${{ github.run_number }}
+      VERSION_NAME: 0.1.${{ github.run_number }}
+      APP_VERSION: 0.1.${{ github.run_number }}
+      HAS_KEYSTORE: ${{ secrets.LUNARIA_KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - run: npm ci
+      - name: Compilar la web (APK) y el archivo único (PC)
+        run: npm run build && npm run build:single
+      - run: npx cap sync android
+      - name: Clave de firma propia (opcional, desde secretos del repositorio)
+        if: env.HAS_KEYSTORE == 'true'
+        env:
+          KEYSTORE_B64: ${{ secrets.LUNARIA_KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/lunaria.p12"
+          echo "LUNARIA_KEYSTORE=$RUNNER_TEMP/lunaria.p12" >> "$GITHUB_ENV"
+          echo "LUNARIA_KEYSTORE_PASSWORD=${{ secrets.LUNARIA_KEYSTORE_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "LUNARIA_KEY_ALIAS=${{ secrets.LUNARIA_KEY_ALIAS }}" >> "$GITHUB_ENV"
+          echo "LUNARIA_KEY_PASSWORD=${{ secrets.LUNARIA_KEY_PASSWORD }}" >> "$GITHUB_ENV"
+      - name: Compilar APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+      - name: Preparar archivos
+        run: |
+          mkdir -p salida
+          cp android/app/build/outputs/apk/release/app-release.apk "salida/Lunaria-$VERSION_NAME.apk"
+          cp dist-single/index.html "salida/Lunaria-$VERSION_NAME.html"
+          ls -la salida
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Lunaria-${{ env.VERSION_NAME }}
+          path: salida/
+          retention-days: 30
+      - name: Publicar versión descargable
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION_NAME }}
+          name: Lunaria ${{ env.VERSION_NAME }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          files: salida/*
+          body: |
+            **Android:** descarga `Lunaria-${{ env.VERSION_NAME }}.apk` en el móvil y ábrelo (la primera vez Android pedirá permitir instalar apps de esta fuente). Las versiones nuevas se instalan encima sin perder tu biblioteca.
+
+            **PC:** descarga `Lunaria-${{ env.VERSION_NAME }}.html` y ábrelo con doble clic en Chrome, Edge o Firefox. Funciona sin internet y sin instalar nada.
+
+            Rama `${{ github.ref_name }}` · commit ${{ github.sha }}
