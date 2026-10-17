@@ -7,8 +7,10 @@ import android.database.Cursor;
 import android.graphics.Color;
 import android.net.Uri;
 import android.provider.OpenableColumns;
+import android.util.Base64;
 import android.view.Window;
 import android.view.WindowManager;
+import androidx.core.content.FileProvider;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
@@ -36,6 +38,8 @@ public class LunariaPlugin extends Plugin {
     @Override
     public void load() {
         instance = this;
+        // El tamaño de letra lo controla el lector: que la escala de fuente del sistema no lo multiplique
+        bridge.getWebView().getSettings().setTextZoom(100);
     }
 
     @Override
@@ -110,6 +114,37 @@ public class LunariaPlugin extends Plugin {
             controller.setAppearanceLightNavigationBars(!dark);
             call.resolve();
         });
+    }
+
+    /** Exportar desde la web: el WebView no descarga blob:, así que abrimos el menú Compartir. */
+    @PluginMethod
+    public void shareFile(PluginCall call) {
+        String name = call.getString("name", "lunaria.txt").replaceAll("[\\\\/:*?\"<>|]+", "-");
+        String data = call.getString("data", "");
+        String mime = call.getString("mime", "application/octet-stream");
+        try {
+            File dir = new File(getContext().getCacheDir(), "compartir");
+            if (!dir.exists() && !dir.mkdirs()) throw new IllegalStateException("Sin caché");
+            File[] old = dir.listFiles();
+            if (old != null) for (File f : old) //noinspection ResultOfMethodCallIgnored
+                f.delete();
+            File file = new File(dir, name);
+            try (FileOutputStream out = new FileOutputStream(file)) {
+                out.write(Base64.decode(data, Base64.DEFAULT));
+            }
+            Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", file);
+            Intent send = new Intent(Intent.ACTION_SEND);
+            send.setType(mime);
+            send.putExtra(Intent.EXTRA_STREAM, uri);
+            send.putExtra(Intent.EXTRA_TITLE, name);
+            send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            Intent chooser = Intent.createChooser(send, "Guardar o compartir");
+            chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            getActivity().startActivity(chooser);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("No se pudo compartir el archivo", e);
+        }
     }
 
     static void emitVolumeKey(String direction) {

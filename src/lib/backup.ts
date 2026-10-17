@@ -5,7 +5,8 @@ import { customPresets, customThemes, replaceSettings, saveCustomPresets, saveCu
 import { flushGame, profile, replaceProfile } from './game/game'
 import type { Profile } from './game/achievements'
 import { refreshLibrary } from './library'
-import { downloadBlob, dayKey } from './util'
+import { dayKey } from './util'
+import { saveFile } from './native'
 import type { Theme } from './themes'
 import type { TypoPreset } from './settings'
 
@@ -37,7 +38,7 @@ export async function exportBackup() {
     books: list.map(({ cover: _cover, ...rest }) => rest),
     annotations: await annotations.all(),
   }
-  downloadBlob(new Blob([JSON.stringify(data)], { type: 'application/json' }), `lunaria-copia-${dayKey()}.json`)
+  await saveFile(new Blob([JSON.stringify(data)], { type: 'application/json' }), `lunaria-copia-${dayKey()}.json`)
 }
 
 export async function importBackup(file: File): Promise<string> {

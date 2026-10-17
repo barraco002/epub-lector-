@@ -12,6 +12,8 @@ async function importBooks(page: Page, files: string[]) {
 async function openBook(page: Page, title: string) {
   await page.locator('.book-open', { hasText: title }).click()
   await expect(page.locator('#bk section.ch[data-rendered]').first()).toBeVisible({ timeout: 20_000 })
+  // El lector registra atajos y gestos al terminar de posicionarse
+  await expect(page.locator('.reader[data-state="ready"]')).toBeVisible()
 }
 
 const scrollTop = (page: Page) => page.evaluate(() => document.querySelector('.reader-scroller')!.scrollTop)
@@ -96,7 +98,7 @@ test('recuerda la posición de lectura al volver a abrir', async ({ page }) => {
   await expect(page.locator('.continue-card')).toContainText('La novela de prueba')
   await page.reload()
   await page.locator('.continue-card').click()
-  await expect(page.locator('#bk section.ch[data-rendered]').first()).toBeVisible()
+  await expect(page.locator('.reader[data-state="ready"]')).toBeVisible()
   await page.waitForTimeout(500)
   const visible = await page.evaluate((needle) => {
     const r = document.querySelector('.reader-scroller')!.getBoundingClientRect()

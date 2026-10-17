@@ -1,5 +1,6 @@
 // Puente con Android (Capacitor) con alternativas web para el PC.
 import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core'
+import { downloadBlob } from './util'
 
 interface LunariaPlugin {
   setImmersive(opts: { enabled: boolean }): Promise<void>
@@ -7,6 +8,7 @@ interface LunariaPlugin {
   setBrightness(opts: { value: number }): Promise<void>
   setVolumeKeys(opts: { enabled: boolean }): Promise<void>
   setSystemBars(opts: { color: string; dark: boolean }): Promise<void>
+  shareFile(opts: { name: string; data: string; mime: string }): Promise<void>
   addListener(event: 'volumeKey', cb: (e: { direction: 'up' | 'down' }) => void): Promise<PluginListenerHandle>
   addListener(event: 'fileOpened', cb: (e: { path: string; name: string }) => void): Promise<PluginListenerHandle>
 }
@@ -93,4 +95,18 @@ export async function onBackButton(handler: () => boolean) {
   await App.addListener('backButton', () => {
     if (!handler()) void App.exitApp()
   })
+}
+
+const toBase64 = (blob: Blob) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '')
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(blob)
+  })
+
+/** Guarda un archivo: descarga en el PC; menú Compartir en Android (el WebView no descarga blob:). */
+export async function saveFile(blob: Blob, name: string) {
+  if (!isNative()) return downloadBlob(blob, name)
+  await Lunaria.shareFile({ name, data: await toBase64(blob), mime: blob.type || 'application/octet-stream' })
 }

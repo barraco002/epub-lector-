@@ -5,8 +5,7 @@ import { newCustomTheme, type Texture, type Theme } from '../../../lib/themes'
 import { contrast, isDark } from '../../../lib/color'
 import { track } from '../../../lib/game/game'
 import { error, info } from '../../../lib/toasts'
-import { downloadBlob } from '../../../lib/util'
-import { isNative } from '../../../lib/native'
+import { isNative, saveFile } from '../../../lib/native'
 import { Section, Segmented, Slider, Toggle } from '../../ui'
 
 function Swatch({ theme, on, onClick }: { theme: Theme; on: boolean; onClick: () => void }) {
@@ -111,7 +110,7 @@ function ThemeEditor({ theme, onBack }: { theme: Theme; onBack: () => void }) {
           class="btn"
           onClick={() => {
             const json = JSON.stringify({ ...theme, custom: undefined, id: undefined }, null, 2)
-            downloadBlob(new Blob([json], { type: 'application/json' }), `tema-${theme.name}.json`)
+            void saveFile(new Blob([json], { type: 'application/json' }), `tema-${theme.name}.json`)
           }}
         >
           <Download size={16} /> Exportar

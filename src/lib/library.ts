@@ -3,7 +3,7 @@ import { annotations, books, kv, type BookRecord } from './db'
 import { importEpub } from './importer'
 import { error, info, toast } from './toasts'
 import { libraryCount, recheck } from './game/game'
-import { downloadBlob } from './util'
+import { saveFile } from './native'
 
 export const library = signal<BookRecord[]>([])
 export const importing = signal<{ name: string; progress: number; index: number; total: number } | null>(null)
@@ -41,7 +41,8 @@ interface Orphan {
 }
 
 export async function importFiles(files: File[]): Promise<BookRecord | null> {
-  const epubs = files.filter((f) => /\.epub$/i.test(f.name) || f.type === 'application/epub+zip')
+  // Algunos gestores de archivos de Android no dan extensión ni tipo: el parser valida el resto
+  const epubs = files.filter((f) => /\.epub$/i.test(f.name) || /epub|zip|octet-stream/.test(f.type) || (!f.type && !/\.\w{2,4}$/.test(f.name)))
   if (!epubs.length) {
     error('Solo se pueden importar archivos .epub')
     return null
@@ -115,7 +116,7 @@ export async function exportHighlights(book: BookRecord) {
     if (a.note) md += `${a.note}\n\n`
     md += `— *capítulo ${a.s + 1}, ${new Date(a.createdAt).toLocaleDateString('es')}*\n\n---\n\n`
   }
-  downloadBlob(new Blob([md], { type: 'text/markdown' }), `${book.title.replace(/[\\/:*?"<>|]+/g, '')} — subrayados.md`)
+  await saveFile(new Blob([md], { type: 'text/markdown' }), `${book.title.replace(/[\\/:*?"<>|]+/g, '')} — subrayados.md`)
 }
 
 export function sortBooks(list: BookRecord[], by: 'recent' | 'title' | 'author' | 'progress' | 'added') {

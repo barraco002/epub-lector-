@@ -384,7 +384,7 @@ export function Reader({ bookId }: { bookId: string }) {
     .join(' ')
 
   return (
-    <div class={cls}>
+    <div class={cls} data-state={status}>
       <div class="reader-texture" aria-hidden="true" />
       <div
         class="reader-scroller"
