@@ -6,6 +6,7 @@ import { allFonts } from '../lib/fonts'
 import { exportBackup, importBackup } from '../lib/backup'
 import { error, info } from '../lib/toasts'
 import { isNative } from '../lib/native'
+import { t } from '../lib/i18n'
 import { IconButton, Section, Segmented, Slider, Toggle } from './ui'
 import { ThemePanel } from './reader/panels/Themes'
 
@@ -60,6 +61,19 @@ export function SettingsView() {
         <span />
       </header>
       <main class="page-main narrow">
+        <Section title={t('Idioma')}>
+          <Segmented
+            label={t('Idioma')}
+            value={s.lang}
+            onChange={(lang) => update({ lang })}
+            options={[
+              { value: 'auto', label: t('Automático') },
+              { value: 'es', label: 'Español' },
+              { value: 'en', label: 'English' },
+            ]}
+          />
+          <p class="muted small">{t('Automático sigue el idioma del móvil o del navegador. El texto del libro no cambia.')}</p>
+        </Section>
         <Section title="Lectura">
           <div class="row stack">
             <span class="row-label">Zonas de toque</span>

@@ -2,6 +2,7 @@ import { computed, effect, signal } from '@preact/signals'
 import { BUILTIN_THEMES, DEFAULT_THEME_ID, type Theme } from './themes'
 import { kv } from './db'
 import { debounce } from './util'
+import { langPref, type LangPref } from './i18n'
 
 export interface Typography {
   font: string
@@ -40,6 +41,8 @@ export interface Settings {
   gameMode: 'completo' | 'discreto' | 'estadisticas'
   progressStyle: 'sutil' | 'acento'
   chapterHeaders: boolean
+  /** Idioma de la interfaz: automático (según el sistema), español o inglés */
+  lang: LangPref
   typo: Typography
   uiFont: string
   // Lectura
@@ -129,6 +132,7 @@ export const DEFAULT_SETTINGS: Settings = {
   gameMode: 'completo',
   progressStyle: 'sutil',
   chapterHeaders: true,
+  lang: 'auto',
   typo: DEFAULT_TYPO,
   uiFont: 'system-sans',
   tapZones: 'vertical',
@@ -217,6 +221,9 @@ function loadSettings(): Settings {
 }
 
 export const settings = signal<Settings>(loadSettings())
+effect(() => {
+  langPref.value = settings.value.lang
+})
 export const customThemes = signal<Theme[]>([])
 export const customPresets = signal<TypoPreset[]>([])
 

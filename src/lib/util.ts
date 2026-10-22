@@ -1,3 +1,4 @@
+import { locale, t } from './i18n'
 export const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v))
 
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
@@ -68,12 +69,15 @@ export function addDays(key: string, n: number): string {
   return dayKey(new Date(y, m - 1, d + n))
 }
 
-const nf = new Intl.NumberFormat('es')
-export const fmtNum = (n: number) => nf.format(Math.round(n))
+const nfs: Record<string, Intl.NumberFormat> = {}
+export const fmtNum = (n: number) => {
+  const l = locale()
+  return (nfs[l] ??= new Intl.NumberFormat(l)).format(Math.round(n))
+}
 
 export function fmtDuration(ms: number, short = false): string {
   const totalMin = Math.round(ms / 60000)
-  if (totalMin < 1) return short ? '<1 min' : 'menos de 1 min'
+  if (totalMin < 1) return short ? '<1 min' : t('menos de 1 min')
   const h = Math.floor(totalMin / 60)
   const m = totalMin % 60
   if (!h) return `${m} min`
