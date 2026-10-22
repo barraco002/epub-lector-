@@ -1,112 +1,185 @@
-# 🌙 Lunaria
+<h1 align="center">🌙 Lunaria</h1>
 
-Lector de EPUB inspirado en Moon+ Reader y en la estética de Substack: lectura en **scroll infinito**, todo personalizable (temas, tipografía, tamaños, márgenes), **pomodoro**, **sonidos ambientales sintetizados** (lluvia, tormenta, ruido blanco…) y **gamificación** (XP, niveles, rachas, logros y avisos de progreso).
+<p align="center">
+  <b>Your books. Your pace.</b><br>
+  An offline EPUB reader with infinite scroll, a pomodoro timer, synthesized rain 🌧️ and a gamification layer that rewards you for actually reading.
+</p>
 
-- **Android:** APK nativo (Capacitor).
-- **PC:** un único archivo `Lunaria-x.y.z.html` que se abre con doble clic en el navegador, sin instalar nada y sin internet.
+<p align="center">
+  <a href="https://github.com/barraco002/epub-lector-/actions/workflows/build.yml"><img alt="CI" src="https://github.com/barraco002/epub-lector-/actions/workflows/build.yml/badge.svg"></a>
+  <a href="https://github.com/barraco002/epub-lector-/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/barraco002/epub-lector-"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-yellow.svg"></a>
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white">
+  <img alt="Preact" src="https://img.shields.io/badge/Preact-673AB8?logo=preact&logoColor=white">
+  <img alt="Capacitor" src="https://img.shields.io/badge/Capacitor-119EFF?logo=capacitor&logoColor=white">
+  <img alt="PRs welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg">
+</p>
 
-## Descargar
+<p align="center">
+  🇬🇧 English · 🇪🇸 <a href="README.es.md">Leer en español</a>
+</p>
 
-Cada vez que se sube código, GitHub Actions ejecuta los tests, compila y publica una versión en
-**[Releases](https://github.com/barraco002/epub-lector-/releases/latest)**:
+<p align="center">
+  <img src="docs/screenshots/library-mobile.png" width="220" alt="Lunaria library on Android">
+  <img src="docs/screenshots/reader-mobile.png" width="220" alt="Reading on Android">
+  <img src="docs/screenshots/reader-mobile-menu.png" width="220" alt="Reader menu on Android">
+</p>
+<p align="center">
+  <img src="docs/screenshots/reader-desktop.png" width="760" alt="Reader on desktop">
+</p>
 
-| Plataforma | Archivo | Cómo usarlo |
+## 🚀 Why Lunaria?
+
+Most EPUB readers want your attention, your email and your credit card. Lunaria just wants your next chapter. 📖
+
+- 🌊 **Infinite scroll.** No page flips, no chapter walls.
+- 🍅 **Pomodoro built in.** A countdown in your notification bar and an alarm that still rings with the screen off.
+- 🌧️ **13 ambient sounds generated on your device.** Rain, thunder, fireplace, brown noise, and the eternal debate of white vs. pink.
+- 🎮 **Gamified reading.** XP, levels, streaks and 22 achievements. Skipping chapters doesn't count. We're not monsters.
+- 🎨 **55 themes and 27 fonts.** Paper textures included, because a reader should feel like a book.
+- 🔒 **Zero accounts, zero ads, zero analytics.** Your library lives in your browser. We don't even have a server to lose it on. 🙃
+
+## 📦 Download
+
+Grab the latest build from **[Releases](https://github.com/barraco002/epub-lector-/releases/latest)**:
+
+| Platform | File | How |
 |---|---|---|
-| Android 7+ | `Lunaria-0.1.N.apk` | Descárgalo en el móvil y ábrelo. La primera vez Android pedirá permitir instalar desde esa fuente. Las versiones nuevas se instalan encima **sin perder la biblioteca**. |
-| PC (Windows/Mac/Linux) | `Lunaria-0.1.N.html` | Doble clic → se abre en Chrome/Edge/Firefox. Los libros quedan guardados en ese navegador. |
+| 📱 Android 7+ | `Lunaria-x.y.z.apk` | Download, tap, allow "install unknown apps" once, enjoy. |
+| 💻 Windows · macOS · Linux | `Lunaria-x.y.z.html` | Double-click. Works offline. No installer, no drama. |
 
-> En Android puedes abrir un `.epub` desde el gestor de archivos, Drive o Telegram con **"Abrir con → Lunaria"**, o compartirlo hacia la app.
+> 💡 On Android you can also open an `.epub` from your file manager, Drive or Telegram with **Open with → Lunaria**, or share it straight into the app.
 
-## Funciones
+## ✨ Features
 
-**Lectura**
-- Scroll continuo entre capítulos (solo se construyen los capítulos cercanos; los lejanos se descargan de memoria).
-- Toques: arriba/izquierda retrocede una pantalla, abajo/derecha avanza, centro abre el menú. Teclas de volumen para pasar pantalla (Android).
-- **Autoscroll** a tus palabras por minuto, continuo o por pantallas; se pausa al tocar.
-- Posición guardada por carácter (sobrevive a cambios de fuente o tamaño). Índice, marcadores, búsqueda sin tildes ni mayúsculas.
-- Subrayados en 5 colores con notas (exportables a Markdown), notas al pie en ventana emergente, visor de imágenes.
-- Diccionario (Free Dictionary / Wiktionary) y traducción (MyMemory) **solo cuando los pides**; enlaces a Google Translate y la RAE.
-- Pantalla completa inmersiva, pantalla encendida con temporizador, línea de estado (hora, batería, %, minutos que faltan del capítulo).
-- **Volver tras un salto:** después de ir al índice, a una búsqueda o a un enlace aparece «Volver a…» (y Atrás también vuelve).
-- Al pasar pantalla, el renglón que quedaba cortado sube entero arriba y una marca breve señala por dónde ibas.
-- **Mis palabras:** guarda una palabra desde el diccionario con la frase del libro y repásala con tarjetas (repaso espaciado de 1 a 32 días).
+### 📖 Reading
+- Continuous scroll across chapters. Only the chapters near your viewport are kept in memory.
+- Tap the top or left to go back a screen, the bottom or right to go forward, the center to open the menu. Volume keys turn the page on Android.
+- Autoscroll at your words-per-minute, continuous or screen by screen. Tap to pause. Volume keys adjust the speed.
+- Your position is saved per character, so it survives font and size changes.
+- Table of contents, bookmarks, and search that ignores accents and case.
+- Highlights in five colours with notes, exportable to Markdown.
+- Footnotes in a pop-up, images in a viewer.
+- Dictionary (Free Dictionary, Wiktionary) and translation (MyMemory), only when you ask for them.
+- A "back after a jump" chip and a "you were here" mark after each screen.
+- **My words:** save a word with its sentence from the book and review it with spaced-repetition cards (boxes from 1 to 32 days).
 
-**Personalización**
-- **45 temas** (Substack, Papel, Sepia, Pergamino, Nord, Dracula, Catppuccin, Rosé Pine, Tokyo Night, Gruvbox, AMOLED, ámbar nocturno…), todos con contraste de texto verificado (WCAG AA o superior). Editor para crear, duplicar, exportar e importar temas; texturas de papel, lino o grano.
-- **27 familias tipográficas libres** incluidas y offline (Spectral —la de Substack—, Literata, Charis SIL, Newsreader, EB Garamond, Atkinson Hyperlegible, OpenDyslexic, iA Writer Quattro…) + tus propias fuentes `.ttf/.otf/.woff2`.
-- Tamaño, grosor (fuentes variables), interlineado, espacio entre párrafos, sangría, espaciado de letras y palabras, márgenes, **letras por línea** (el ancho se mide en caracteres, no en píxeles), justificado y separación silábica. Al cambiar de fuente el tamaño aparente se mantiene. Estilos rápidos (Substack, Kindle, Libro clásico, Accesible, Dislexia…) y estilos propios.
-- Se puede respetar o anular la fuente, los colores y el espaciado del propio libro.
-- **Día y noche de un toque:** un tema de día y otro de noche; se cambia a mano, como el sistema o por horario.
-- **Filtro de luz azul** programable (calienta los colores del tema y las imágenes, sin capas encima) y atenuación por debajo del brillo mínimo.
+### 🎨 Personalization
+- 55 built-in themes, a theme editor (create, duplicate, export, import) and paper, linen and grain textures.
+- 27 font families bundled for offline use (Spectral, Literata, Charis SIL, OpenDyslexic, Atkinson Hyperlegible…), plus your own `.ttf`, `.otf` or `.woff2`.
+- Size, weight, line height, paragraph spacing, indent, letter and word spacing, margins, justification, hyphenation, and line length measured in characters.
+- Respect or override the book's own fonts, colours and spacing.
+- A day and night pair of themes: switch by hand, follow the system, or follow a schedule.
+- A blue-light filter that warms colours and images without putting overlays on top.
 
-**Concentración**
-- Pomodoro con fases configurables, descanso largo cada N, autoinicio, aviso con campana/cuenco/madera y pantalla de descanso (regla 20-20-20).
-- 13 sonidos generados en el dispositivo y mezclables: lluvia, lluvia en la ventana, tormenta con truenos, viento, olas, chimenea, bosque, grillos, arroyo, ventilador y ruido blanco/rosa/marrón. Ambientes prediseñados, temporizador de apagado y modo "solo durante el enfoque".
-- **Android:** cuenta atrás del pomodoro en la notificación y aviso con sonido al terminar aunque la pantalla esté apagada; el sonido ambiente puede seguir con la pantalla apagada (con botón Pausar en la notificación) y se pausa solo en llamadas, con otra música o al quitar los auriculares.
+### 🍅 Focus
+- Pomodoro with configurable phases, a long break every N rounds, auto-start, and a 20-20-20 break screen.
+- 13 synthesized sounds you can mix: rain, rain on the window, thunderstorm, wind, waves, fireplace, forest, crickets, brook, fan, and white, pink and brown noise.
+- A sleep timer, and a "focus only" mode for the sounds.
 
-**Gamificación**
-- XP por palabras leídas (con tope de velocidad: saltar capítulos no cuenta), pomodoros, capítulos y libros terminados.
-- Niveles con títulos («Ratón de biblioteca», «Guardián de Alejandría»…), **racha diaria** con comodines, meta diaria en minutos.
-- 42 logros (Búho nocturno, Maratón, Ladrillo, Políglota…), mapa de calor de 18 semanas, minutos por día, velocidad de lectura.
-- Avisos durante la lectura: «Leíste 1.000 palabras», «Avanzaste 5 %», «Capítulo terminado» y barrita de sesión.
-- **Modo de juego:** completo, discreto (nada interrumpe; los logros esperan al cerrar) o solo datos (sin XP ni niveles).
-- **Resumen al cerrar el libro:** tiempo, palabras, avance, XP y logros de la sesión.
-- **Libro terminado:** ficha *ex libris* con tus cifras y una tarjeta PNG para guardar o compartir.
+### 🎮 Gamification
+- XP for words read, with a speed cap so skipping chapters doesn't count.
+- XP for pomodoros, finished chapters and finished books.
+- Levels with titles (from *Library Mouse* upwards), a daily streak with freezes, and a daily goal in minutes.
+- 22 achievements, an 18-week heatmap, reading speed and minutes per day.
+- Game mode: **full**, **quiet** (nothing interrupts you, achievements wait until you close the book) or **data only**.
+- A session summary when you close a book, and an *ex libris* card with a shareable PNG when you finish one.
 
-**Android**
-- Accesos directos al mantener pulsado el icono: Continuar, Pomodoro y Lluvia.
-- Widget con tu racha, la meta de hoy y el libro en curso.
-- Copia automática: progreso, rachas, subrayados y palabras (sin los EPUB, para que quepa en la cuota) entran en la copia de seguridad de Android y se restauran solos al reinstalar o cambiar de móvil.
+### 📱 Android extras
+- App shortcuts: Continue, Pomodoro, Rain.
+- A widget with your streak, today's goal and the book you're reading.
+- The pomodoro countdown lives in the notification, and an alarm rings when a phase ends, even with the screen off.
+- Ambient sound can keep playing with the screen off, with a Pause button in the notification. It pauses on calls, when other music starts, or when the headphones come out.
+- Automatic Android backup of progress, streaks, highlights and words (not the EPUB files), restored when you reinstall or switch phones.
 
-## Rendimiento y batería
+## ⚡ Performance (yes, we measured it, nerds)
 
-Medido con Chromium y la CPU ralentizada 4× (equivalente a un móvil de gama media):
+Measured with Chromium and the CPU throttled 4× (roughly a mid-range phone):
 
-| Prueba | Resultado |
+| Test | Result |
 |---|---|
-| Importar *Moby-Dick* (135 capítulos) | 1,3 s |
-| Abrirlo | 0,9 s |
-| Lector en reposo durante 10 s | 12 ms de CPU, 0 recálculos de maquetación |
-| Scroll | 60 fps (p95: 16,8 ms por frame) |
-| Sonido de fondo sonando | 90 ms de hilo principal cada 10 s |
-| Memoria JS con el libro abierto | ~4 MB |
+| Import *Moby-Dick* (135 chapters) | 1.3 s |
+| Open it | 0.9 s |
+| Reader idle for 10 s | 12 ms of CPU, 0 layout recalculations |
+| Scroll | 60 fps (p95: 16.8 ms per frame) |
+| Ambient sound playing | 90 ms of main thread every 10 s |
+| JS heap with a book open | ~4 MB |
 
-Decisiones que lo hacen posible: nada de bucles de animación salvo con el autoscroll activo; en Android el pomodoro con la app cerrada no usa ningún servicio (la cuenta atrás la dibuja el sistema y una sola alarma avisa al final) y el servicio de sonido solo existe mientras suena con la opción activa; el widget recibe datos al leer, no consulta nada por su cuenta; pomodoro y filtro programado con un único temporizador hasta el siguiente evento; los sonidos se generan una vez en un Web Worker y luego se reproducen en bucle (sin procesado en JavaScript) y el `AudioContext` se suspende en cuanto nada suena; todo se pausa al salir de la app; la pantalla se deja apagar tras unos minutos sin tocarla.
+How we got there: no animation loops unless autoscroll is running. On Android the pomodoro uses no service while the app is closed: the system draws the countdown and a single alarm rings at the end. Sounds are generated once in a Web Worker and then looped, and the `AudioContext` suspends as soon as nothing is playing. Everything pauses when you leave the app.
 
-## Privacidad
+## 🔒 Privacy
 
-Todo se guarda en el dispositivo (IndexedDB). No hay cuentas, analíticas ni anuncios. En Android, un resumen del progreso (sin los libros) entra en la copia de seguridad del propio sistema. Internet solo se usa al pedir una definición o una traducción. Desde **Ajustes → Tus datos** puedes exportar una copia (progreso, subrayados, estadísticas, temas) e importarla en otro dispositivo: al volver a importar el mismo EPUB recupera su progreso.
+Everything lives on your device, in IndexedDB. No accounts, no analytics, no ads. The network is only touched when you explicitly ask for a definition or a translation. **Settings → Your data** exports and imports a backup (progress, highlights, stats, themes), so you can move to another device.
 
-## Desarrollo
+## 🧪 Quality (the part where we brag)
 
-Requiere Node 22.
+- **94 unit tests** (Vitest) and **32 end-to-end runs** (Playwright, mobile and desktop viewports).
+- TypeScript in strict mode.
+- Every push runs: typecheck → unit tests → build → Playwright → APK build → release.
+
+## 🛠️ Development
+
+Requires **Node 22**.
 
 ```bash
 npm install
-npm run dev            # servidor de desarrollo
-npm run typecheck      # TypeScript
-npm test               # tests unitarios (Vitest)
-npm run build && npm run e2e   # pruebas en navegador (Playwright, móvil y escritorio)
-npm run build:single   # dist-single/index.html (versión PC de un solo archivo)
-npm run android:apk    # APK (necesita Android SDK y Java 21)
+npm run dev                    # dev server
+npm run typecheck              # TypeScript
+npm test                       # unit tests (Vitest)
+npm run build && npm run e2e   # browser tests (Playwright)
+npm run build:single           # dist-single/index.html, the desktop build
+npm run android:apk            # Android APK (needs the Android SDK and Java 21)
 ```
 
-Estructura: `src/lib/epub` (lectura y saneado de EPUB, aislamiento del CSS del libro), `src/lib/reader` (motor de scroll, autoscroll, sesión), `src/lib/audio` (síntesis de sonidos), `src/lib/game` (XP, niveles, logros), `src/components` (interfaz en Preact), `android/` (proyecto Capacitor con el plugin nativo `LunariaPlugin`).
+Project map:
 
-### Firma del APK
+| Path | What lives there |
+|---|---|
+| `src/lib/epub` | EPUB parsing, HTML sanitizing, isolation of the book's CSS |
+| `src/lib/reader` | Scroll engine, autoscroll, reading sessions |
+| `src/lib/audio` | Sound synthesis, baked once in a Web Worker |
+| `src/lib/game` | XP, levels, achievements |
+| `src/components` | The UI, in Preact |
+| `android/` | The Capacitor project and the native `LunariaPlugin` |
 
-El APK se firma con `android/keystore/lunaria.p12` para que cada versión actualice a la anterior. Como el repositorio es público, cualquiera podría firmar un APK con esa misma clave. Si prefieres una clave privada, crea estos secretos en *Settings → Secrets and variables → Actions*: `LUNARIA_KEYSTORE_BASE64`, `LUNARIA_KEYSTORE_PASSWORD`, `LUNARIA_KEY_ALIAS`, `LUNARIA_KEY_PASSWORD`. Ojo: cambiar de clave obliga a desinstalar la app una vez (exporta antes una copia desde Ajustes). Para crear la clave:
+Engineering notes (in Spanish, sorry): [`aprendizaje.md`](aprendizaje.md). Decisions, trade-offs and the things that went wrong along the way.
 
-```bash
-keytool -genkeypair -storetype PKCS12 -keystore lunaria-privada.p12 -alias lunaria \
-  -keyalg RSA -keysize 3072 -validity 18250 -dname "CN=Lunaria"
-base64 -w0 lunaria-privada.p12   # esto va en LUNARIA_KEYSTORE_BASE64
-```
+## 🔏 Signing (the honest section 😅)
 
-Si `LUNARIA_KEY_ALIAS` o `LUNARIA_KEY_PASSWORD` se dejan vacíos se usan `lunaria` y la contraseña del almacén.
+Release APKs are signed with a key committed to this repository (`android/keystore/lunaria.p12`), so each release updates the previous one in place. Because the repository is public, **anyone can sign with that key**. Treat any APK that doesn't come from the [Releases](https://github.com/barraco002/epub-lector-/releases) page as untrusted. Maintainers who want their own key can set four CI secrets. The steps are in the "Firma del APK" section of [README.es.md](README.es.md#firma-del-apk).
 
-## Créditos
+## 🗺️ Roadmap
 
-- Parser EPUB basado en las ideas de [foliate-js](https://github.com/johnfactotum/foliate-js) (MIT).
-- Fuentes vía [Fontsource](https://fontsource.org) con licencia SIL Open Font License.
-- Iconos de [Lucide](https://lucide.dev) (ISC). Interfaz con [Preact](https://preactjs.com); app Android con [Capacitor](https://capacitorjs.com).
+Ideas, not promises. 🤞
+
+- [x] Infinite-scroll EPUB reader
+- [x] Android APK and a single-file desktop build
+- [x] Pomodoro with an alarm and background sound
+- [x] Vocabulary with spaced repetition
+- [ ] English UI (the app is Spanish-only today)
+- [ ] Accessibility audit with screen readers
+- [ ] Optional encrypted backup to a folder of your choice
+
+## 🤝 Contributing
+
+Contributions are very welcome: bug reports, feature ideas, translations, tests for weird EPUBs, or a tiny typo fix. Start with [CONTRIBUTING.md](CONTRIBUTING.md). 🎉
+
+## 🙏 Acknowledgements
+
+- **Moon+ Reader**, the reading experience that set the bar. 🌕
+- **Substack**, for the aesthetic (and the Spectral font).
+- [foliate-js](https://github.com/johnfactotum/foliate-js) (MIT), the ideas behind the EPUB parser.
+- [Fontsource](https://fontsource.org), the bundled fonts, under the SIL Open Font License.
+- [Lucide](https://lucide.dev) icons (ISC).
+- [Preact](https://preactjs.com), [Vite](https://vitejs.dev), [Capacitor](https://capacitorjs.com), [Playwright](https://playwright.dev) and [Vitest](https://vitest.dev): the stack that does the heavy lifting.
+
+## 📄 License
+
+Released under the [MIT License](LICENSE). Use it, fork it, ship it. A mention is appreciated but not required. 💜
+
+---
+
+<p align="center">
+  Made with ❤️, TypeScript, Preact and a suspicious amount of ☕.<br>
+  If Lunaria made your reading a little better, <b>give it a ⭐</b>. It takes one click and makes a maintainer's whole week. 🌟
+</p>
