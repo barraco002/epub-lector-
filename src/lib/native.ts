@@ -9,6 +9,9 @@ interface LunariaPlugin {
   setVolumeKeys(opts: { enabled: boolean }): Promise<void>
   setSystemBars(opts: { color: string; dark: boolean }): Promise<void>
   shareFile(opts: { name: string; data: string; mime: string }): Promise<void>
+  getPinned(): Promise<{ pinned: boolean }>
+  unpin(): Promise<void>
+  translateWithApp(opts: { text: string }): Promise<void>
   addListener(event: 'volumeKey', cb: (e: { direction: 'up' | 'down' }) => void): Promise<PluginListenerHandle>
   addListener(event: 'fileOpened', cb: (e: { path: string; name: string }) => void): Promise<PluginListenerHandle>
 }
@@ -89,11 +92,33 @@ export async function initNativeFileOpen(onFile: (file: File) => void) {
   )
 }
 
-export async function onBackButton(handler: () => boolean) {
+export const isPinned = async () => (isNative() ? ((await quiet(Lunaria.getPinned()))?.pinned ?? false) : false)
+export const unpin = () => (isNative() ? quiet(Lunaria.unpin()) : Promise.resolve())
+
+/** Envía el texto a una app de traducción instalada (Google Translate, DeepL…): funciona sin conexión si la app lo permite. */
+export async function translateWithApp(text: string): Promise<boolean> {
+  if (!isNative()) return false
+  try {
+    await Lunaria.translateWithApp({ text })
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Atrás de Android: primero cierra lo abierto; en la raíz sale de la app.
+ * Con la app fijada, Android ignora exitApp: el primer Atrás en la raíz la desfija (salida predecible).
+ */
+export async function onBackButton(handler: () => boolean, onUnpinned?: () => void) {
   if (!isNative()) return
   const { App } = await import('@capacitor/app')
-  await App.addListener('backButton', () => {
-    if (!handler()) void App.exitApp()
+  await App.addListener('backButton', async () => {
+    if (handler()) return
+    if (await isPinned()) {
+      await unpin()
+      onUnpinned?.()
+    } else void App.exitApp()
   })
 }
 

@@ -75,7 +75,8 @@ test('notas al pie, enlaces internos e índice', async ({ page }) => {
   await page.keyboard.press('t')
   await page.locator('.toc-item', { hasText: 'Capítulo 30' }).click()
   await expect.poll(async () => page.locator('#t30').evaluate((el) => Math.round(el.getBoundingClientRect().top))).toBeGreaterThanOrEqual(0)
-  await expect.poll(async () => page.locator('#t30').evaluate((el) => Math.round(el.getBoundingClientRect().top))).toBeLessThan(120)
+  // Encima va la cabecera discreta del capítulo, así que el título queda algo más abajo
+  await expect.poll(async () => page.locator('#t30').evaluate((el) => Math.round(el.getBoundingClientRect().top))).toBeLessThan(260)
 })
 
 test('recuerda la posición de lectura al volver a abrir', async ({ page }) => {
@@ -188,20 +189,68 @@ test('filtro de luz azul calienta los colores del tema', async ({ page }) => {
   expect(r).toBeGreaterThan(b)
 })
 
-test('autoscroll avanza y se detiene al tocar', async ({ page }) => {
+test('modo auto: sin menús encima, tocar pausa y reanuda, Escape sale', async ({ page }) => {
   await importBooks(page, [NOVELA])
   await openBook(page, 'La novela de prueba')
+  // Se arranca desde el panel, con el menú abierto: al empezar no debe quedar nada tapando el texto
+  await showMenu(page)
+  await page.locator('.r-action', { hasText: 'Auto' }).click()
+  await page.locator('.auto-panel .btn-primary').click()
+  await expect(page.locator('.r-top, .r-bottom, .sheet')).toHaveCount(0)
   const start = await scrollTop(page)
-  await page.keyboard.press('a')
-  await expect(page.locator('.auto-pill')).toBeVisible()
-  await page.waitForTimeout(2500)
-  const moved = (await scrollTop(page)) - start
-  expect(moved).toBeGreaterThan(15)
+  await page.waitForTimeout(2800)
+  expect((await scrollTop(page)) - start).toBeGreaterThan(15)
+  // Los controles se apartan solos mientras avanza
+  await expect(page.locator('.auto-pill.is-idle')).toHaveCount(1)
   await page.locator('.reader-scroller').click({ position: { x: 150, y: 400 } })
-  await expect(page.locator('.auto-pill')).toHaveCount(0)
+  await expect(page.locator('.auto-pill.is-paused')).toBeVisible()
   const stopped = await scrollTop(page)
   await page.waitForTimeout(800)
   expect(await scrollTop(page)).toBe(stopped)
+  await page.locator('.reader-scroller').click({ position: { x: 150, y: 400 } })
+  await expect(page.locator('.auto-pill.is-paused')).toHaveCount(0)
+  await page.waitForTimeout(1200)
+  expect(await scrollTop(page)).toBeGreaterThan(stopped)
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.auto-pill')).toHaveCount(0)
+})
+
+test('indicador de avance discreto y cabeceras de capítulo', async ({ page }) => {
+  await importBooks(page, [NOVELA])
+  await openBook(page, 'La novela de prueba')
+  const color = await page.locator('.edge-fill').evaluate((el) => getComputedStyle(el).backgroundColor)
+  // Tono del texto casi transparente (no el acento)
+  expect(color).toMatch(/\/ 0\.2\)|, 0\.2\)/)
+  expect(await page.locator('.edge-progress').evaluate((el) => el.getBoundingClientRect().top)).toBeGreaterThan(400)
+  await page.keyboard.press('t')
+  await page.getByRole('button', { name: 'Capítulo 5', exact: true }).click()
+  await expect(page.locator('section.ch[data-i="4"] .ch-head .ch-label')).toHaveText('5 de 40')
+  // El libro ya titula "Capítulo 5": la cabecera no lo repite
+  await expect(page.locator('section.ch[data-i="4"] .ch-head .ch-title')).toHaveCount(0)
+})
+
+test('modo concentración, colores propios y aire vertical persisten', async ({ page }) => {
+  await importBooks(page, [CORTO])
+  await openBook(page, 'A Short Book')
+  await showMenu(page)
+  await page.locator('.r-action', { hasText: 'Tema' }).click()
+  await page.locator('.segmented button', { hasText: 'Marco' }).click()
+  await expect(page.locator('.reader.focus-marco')).toHaveCount(1)
+  await page.locator('.color-field', { hasText: 'Fondo' }).locator('input').fill('#203040')
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.querySelector('#bk')!).backgroundColor)).toBe('rgb(32, 48, 64)')
+  await page.keyboard.press('Escape')
+  await showMenu(page)
+  await page.locator('.r-action', { hasText: 'Texto' }).click()
+  await page.getByRole('button', { name: 'Aumentar Aire arriba y abajo' }).click()
+  await page.reload()
+  await openBook(page, 'A Short Book')
+  await expect(page.locator('.reader.focus-marco')).toHaveCount(1)
+  expect(await page.evaluate(() => getComputedStyle(document.querySelector('#bk')!).backgroundColor)).toBe('rgb(32, 48, 64)')
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--pad-y').trim())).toBe('40px')
+  await showMenu(page)
+  await page.locator('.r-action', { hasText: 'Tema' }).click()
+  await page.locator('.segmented button', { hasText: 'Franja' }).click()
+  await expect(page.locator('.focus-band')).toHaveCount(1)
 })
 
 test('pomodoro, sonidos y avisos de progreso', async ({ page }) => {

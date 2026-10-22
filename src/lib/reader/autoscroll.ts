@@ -6,6 +6,8 @@ import { signal } from '@preact/signals'
 
 export class AutoScroller {
   readonly running = signal(false)
+  /** En pausa: el modo auto sigue activo (sus controles visibles) pero no se mueve */
+  readonly paused = signal(false)
   private raf = 0
   private timer: ReturnType<typeof setTimeout> | undefined
   private last = 0
@@ -34,6 +36,7 @@ export class AutoScroller {
   start() {
     if (this.running.value) return
     this.running.value = true
+    this.paused.value = false
     this.wppAt = 0
     this.lastTop = -1
     if (this.getMode() === 'smooth') {
@@ -44,22 +47,38 @@ export class AutoScroller {
     }
   }
 
-  stop() {
-    if (!this.running.value) return
+  private halt() {
     this.running.value = false
     cancelAnimationFrame(this.raf)
     clearTimeout(this.timer)
   }
 
+  /** Sale del modo auto. */
+  stop() {
+    this.paused.value = false
+    if (this.running.value) this.halt()
+  }
+
+  /** Detiene el movimiento sin salir del modo (un toque en el texto). */
+  pause() {
+    if (!this.running.value) return
+    this.halt()
+    this.paused.value = true
+  }
+
+  get active() {
+    return this.running.value || this.paused.value
+  }
+
   toggle() {
-    if (this.running.value) this.stop()
+    if (this.active) this.stop()
     else this.start()
   }
 
   /** Reinicia el modo si cambió en ajustes mientras estaba activo. */
   restart() {
     if (!this.running.value) return
-    this.stop()
+    this.halt()
     this.start()
   }
 

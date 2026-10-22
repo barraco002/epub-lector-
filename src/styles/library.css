@@ -3,7 +3,9 @@
 .library,
 .page {
   min-height: 100vh;
-  background: var(--bg) var(--texture);
+  background-color: var(--bg);
+  background-image: var(--texture);
+  background-size: var(--texture-size);
 }
 
 .topbar {

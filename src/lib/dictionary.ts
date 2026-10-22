@@ -102,13 +102,20 @@ export async function translate(text: string, from: string, to: string): Promise
   const dst = (to || 'es').slice(0, 2).toLowerCase()
   if (src === dst) return text
   const q = text.slice(0, 480)
-  try {
-    const data = await fetchJson(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(q)}&langpair=${src}|${dst}`)
-    const out = data?.responseData?.translatedText
-    return typeof out === 'string' && out ? out : null
-  } catch {
-    return null
+  // Un reintento corto: el servicio gratuito falla de forma intermitente
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const data = await fetchJson(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(q)}&langpair=${src}|${dst}`, 6000)
+      const out = data?.responseData?.translatedText
+      const status = Number(data?.responseStatus ?? 200)
+      // Con la cuota agotada MyMemory devuelve el aviso como si fuera la traducción
+      if (typeof out === 'string' && out && status < 400 && !/MYMEMORY WARNING|QUERY LENGTH LIMIT/i.test(out)) return out
+      if (status === 429 || status === 403) return null
+    } catch {
+      /* red inestable: reintentamos una vez */
+    }
   }
+  return null
 }
 
 export const googleTranslateUrl = (text: string, to: string) =>

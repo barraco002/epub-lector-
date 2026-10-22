@@ -20,3 +20,15 @@ describe('temas', () => {
     expect(vars['--bg']).not.toBe(BUILTIN_THEMES[0].bg)
   })
 })
+
+describe('colores propios', () => {
+  it('se superponen al tema y derivan tonos secundarios legibles', async () => {
+    const { applyColorOverrides } = await import('../../src/lib/themes')
+    const base = BUILTIN_THEMES[0]
+    expect(applyColorOverrides(base, { text: '', bg: '', accent: '' })).toBe(base)
+    const t = applyColorOverrides(base, { text: '#e0e0e0', bg: '#203040', accent: '' })
+    expect(t.bg).toBe('#203040')
+    expect(contrast(t.muted, t.bg)).toBeGreaterThanOrEqual(3.5)
+    expect(t.accent).toBe(base.accent)
+  })
+})

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks'
-import { ArrowLeft, Bookmark, BookmarkCheck, Headphones, List, Maximize, Minimize, Minus, Moon, Palette, Pause, Play, Plus, Search, Sun, Timer, Type } from 'lucide-preact'
+import { ArrowLeft, Bookmark, BookmarkCheck, Headphones, List, Maximize, Minimize, Minus, Moon, Palette, Pause, Play, Plus, Search, Sun, Timer, Type, X } from 'lucide-preact'
 import { active, bookAnnotations, chrome, openPanel, panel, position } from './state'
 import { blueActive } from '../../lib/appearance'
 import { settings, update } from '../../lib/settings'
@@ -253,7 +253,7 @@ export function EdgeProgress() {
   const p = position.value
   const v = mode === 'book' ? p.progress : mode === 'chapter' ? p.chapterProgress : goalProgress.value
   return (
-    <div class={`edge-progress edge-${mode}`} aria-hidden="true">
+    <div class={`edge-progress edge-${mode} edge-${settings.value.progressStyle}`} aria-hidden="true">
       <div class="edge-fill" style={{ transform: `scaleX(${v})` }} />
     </div>
   )
@@ -261,11 +261,21 @@ export function EdgeProgress() {
 
 export function AutoPill() {
   const ctx = active.value
-  if (!ctx || !ctx.auto.running.value) return null
+  const running = ctx?.auto.running.value ?? false
+  const paused = ctx?.auto.paused.value ?? false
   const wpm = settings.value.autoWpm
+  // Mientras avanza, los controles se apartan a los 2,5 s; reaparecen al pausar o cambiar la velocidad
+  const [idle, setIdle] = useState(false)
+  useEffect(() => {
+    setIdle(false)
+    if (!running) return
+    const t = setTimeout(() => setIdle(true), 2500)
+    return () => clearTimeout(t)
+  }, [running, wpm])
+  if (!ctx || (!running && !paused)) return null
   const set = (v: number) => update({ autoWpm: Math.max(40, Math.min(1200, v)) })
   return (
-    <div class="auto-pill" role="toolbar" aria-label="Autoscroll">
+    <div class={`auto-pill ${idle ? 'is-idle' : ''} ${paused ? 'is-paused' : ''}`} role="toolbar" aria-label="Autoscroll">
       <IconButton label="Más lento" onClick={() => set(wpm - 10)}>
         <Minus size={18} />
       </IconButton>
@@ -275,8 +285,17 @@ export function AutoPill() {
       <IconButton label="Más rápido" onClick={() => set(wpm + 10)}>
         <Plus size={18} />
       </IconButton>
-      <IconButton label="Pausar autoscroll" onClick={() => ctx.auto.stop()}>
-        <Pause size={18} />
+      {paused ? (
+        <IconButton label="Reanudar autoscroll" onClick={() => ctx.auto.start()}>
+          <Play size={18} />
+        </IconButton>
+      ) : (
+        <IconButton label="Pausar autoscroll" onClick={() => ctx.auto.pause()}>
+          <Pause size={18} />
+        </IconButton>
+      )}
+      <IconButton label="Salir del modo auto" onClick={() => ctx.auto.stop()}>
+        <X size={18} />
       </IconButton>
     </div>
   )

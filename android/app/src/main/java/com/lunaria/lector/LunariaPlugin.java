@@ -1,6 +1,8 @@
 package com.lunaria.lector;
 
 import android.app.Activity;
+import android.app.ActivityManager;
+import android.content.Context;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.database.Cursor;
@@ -53,6 +55,32 @@ public class LunariaPlugin extends Plugin {
         return WindowCompat.getInsetsController(window, window.getDecorView());
     }
 
+    /** ¿La app está fijada en pantalla ("Fijar aplicación") o en modo quiosco? */
+    private boolean isPinned() {
+        ActivityManager am = (ActivityManager) getContext().getSystemService(Context.ACTIVITY_SERVICE);
+        return am != null && am.getLockTaskModeState() != ActivityManager.LOCK_TASK_MODE_NONE;
+    }
+
+    @PluginMethod
+    public void getPinned(PluginCall call) {
+        JSObject res = new JSObject();
+        res.put("pinned", isPinned());
+        call.resolve(res);
+    }
+
+    /** Salida garantizada: deja de fijar la app (Android permite que la propia app lo haga). */
+    @PluginMethod
+    public void unpin(PluginCall call) {
+        getActivity().runOnUiThread(() -> {
+            try {
+                if (isPinned()) getActivity().stopLockTask();
+                call.resolve();
+            } catch (Exception e) {
+                call.reject("No se pudo dejar de fijar la app", e);
+            }
+        });
+    }
+
     @PluginMethod
     public void setImmersive(PluginCall call) {
         boolean enabled = Boolean.TRUE.equals(call.getBoolean("enabled", false));
@@ -61,7 +89,9 @@ public class LunariaPlugin extends Plugin {
             if (enabled) {
                 // Las barras reaparecen un momento al deslizar desde el borde y se vuelven a ocultar solas
                 controller.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-                controller.hide(WindowInsetsCompat.Type.systemBars());
+                // Con la app fijada, la barra de navegación es la salida del sistema: nunca la ocultamos
+                controller.hide(isPinned() ? WindowInsetsCompat.Type.statusBars() : WindowInsetsCompat.Type.systemBars());
+                if (isPinned()) controller.show(WindowInsetsCompat.Type.navigationBars());
             } else {
                 controller.show(WindowInsetsCompat.Type.systemBars());
             }
@@ -145,6 +175,24 @@ public class LunariaPlugin extends Plugin {
         } catch (Exception e) {
             call.reject("No se pudo compartir el archivo", e);
         }
+    }
+
+    /** Traducción estable y sin conexión: envía la selección a las apps instaladas (Google Translate, DeepL…). */
+    @PluginMethod
+    public void translateWithApp(PluginCall call) {
+        String text = call.getString("text", "");
+        getActivity().runOnUiThread(() -> {
+            try {
+                Intent process = new Intent(Intent.ACTION_PROCESS_TEXT);
+                process.setType("text/plain");
+                process.putExtra(Intent.EXTRA_PROCESS_TEXT, text);
+                process.putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, true);
+                getActivity().startActivity(Intent.createChooser(process, "Traducir con…"));
+                call.resolve();
+            } catch (Exception e) {
+                call.reject("No hay apps de traducción instaladas", e);
+            }
+        });
     }
 
     static void emitVolumeKey(String direction) {

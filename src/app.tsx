@@ -5,9 +5,11 @@ import { importFiles, refreshLibrary } from './lib/library'
 import { loadGame } from './lib/game/game'
 import { loadCustomData } from './lib/settings'
 import { loadCustomFonts } from './lib/fonts'
+import { loadBgImage } from './lib/background'
 import { requestPersistence } from './lib/db'
 import { initNativeFileOpen, isNative, onBackButton, setSystemBars } from './lib/native'
 import { tokens } from './lib/appearance'
+import { info } from './lib/toasts'
 import { Library } from './components/Library'
 import { Reader } from './components/reader/Reader'
 import { Stats } from './components/Stats'
@@ -63,12 +65,12 @@ export function App() {
   useEffect(() => {
     void (async () => {
       try {
-        await Promise.all([loadGame(), loadCustomData(), loadCustomFonts(), refreshLibrary()])
+        await Promise.all([loadGame(), loadCustomData(), loadCustomFonts(), refreshLibrary(), loadBgImage()])
       } finally {
         setReady(true)
       }
       void requestPersistence()
-      void onBackButton(back)
+      void onBackButton(back, () => info('App desfijada', 'Pulsa Atrás otra vez para salir'))
       void initNativeFileOpen(async (file) => {
         const book = await importFiles([file])
         if (book) go({ name: 'reader', bookId: book.id })

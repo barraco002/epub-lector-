@@ -1,6 +1,6 @@
 import { contrast, isDark, mix, readableOn, rgba, warm } from './color'
 
-export type Texture = 'none' | 'paper' | 'linen' | 'grain'
+export type Texture = 'none' | 'paper' | 'linen' | 'grain' | 'dots' | 'lines' | 'vignette'
 
 export interface Theme {
   id: string
@@ -44,6 +44,10 @@ export const BUILTIN_THEMES: Theme[] = [
   t('rose-pine-dawn', 'Rosé Pine Dawn', { bg: '#faf4ed', surface: '#fffaf3', text: '#4d4870', muted: '#6e6a88', accent: '#b4637a', border: '#ebe1d6' }),
   t('everforest-claro', 'Everforest claro', { bg: '#fdf6e3', surface: '#f4f0d9', text: '#45525a', muted: '#66756e', accent: '#5f7f1c', border: '#e6e2cc' }),
   t('e-ink', 'E-ink', { bg: '#ecece7', surface: '#f3f3ef', text: '#141414', muted: '#474747', accent: '#222222', border: '#cfcfc8', texture: 'grain' }),
+  t('papiro', 'Papiro', { bg: '#e9dcc0', surface: '#f0e6d0', text: '#3b2e1e', muted: '#66553f', accent: '#94572a', border: '#d4c39f', texture: 'paper' }),
+  t('te-verde', 'Té verde', { bg: '#e8efe4', surface: '#f2f6ef', text: '#23301f', muted: '#52614d', accent: '#3d7a4a', border: '#cfdac8' }),
+  t('rosa-polvo', 'Rosa empolvado', { bg: '#f6ece9', surface: '#fbf5f3', text: '#3e2c2a', muted: '#6e5652', accent: '#a65252', border: '#e6d5d0' }),
+  t('cuaderno', 'Cuaderno', { bg: '#fbfbf7', surface: '#ffffff', text: '#262a33', muted: '#5a6070', accent: '#2b59c3', border: '#e3e6ee', texture: 'dots' }),
   t('contraste-claro', 'Alto contraste claro', { bg: '#ffffff', surface: '#ffffff', text: '#000000', muted: '#2e2e2e', accent: '#0040c0', border: '#767676' }),
   // ——— Oscuros ———
   t('substack-noche', 'Substack noche', { bg: '#151515', surface: '#1e1e1e', text: '#e3e3e3', heading: '#f4f4f4', muted: '#9c9c9c', accent: '#ff6719', link: '#ff8a4c', border: '#2c2c2c' }),
@@ -70,6 +74,11 @@ export const BUILTIN_THEMES: Theme[] = [
   t('solarized-oscuro', 'Solarized oscuro', { bg: '#002b36', surface: '#073642', text: '#a9b7b7', muted: '#839496', accent: '#b58900', link: '#2aa198', border: '#0d4250' }),
   t('fosforo', 'Terminal fósforo', { bg: '#070d08', surface: '#0c150e', text: '#6ee08a', muted: '#46a35f', accent: '#9dffb3', border: '#173a20' }),
   t('ambar', 'Ámbar nocturno', { bg: '#120c03', surface: '#1b1306', text: '#f2b45a', muted: '#b8893f', accent: '#ffcf7a', border: '#33240d' }),
+  t('luna', 'Luna (clásico de noche)', { bg: '#12161f', surface: '#181d28', text: '#c4c9d4', muted: '#8a93a3', accent: '#6b9bd1', border: '#232a36' }),
+  t('carbon', 'Carbón', { bg: '#1c1c1e', surface: '#242426', text: '#d1d1d6', muted: '#8e8e93', accent: '#ff9f0a', border: '#2c2c2e' }),
+  t('pizarra', 'Pizarra', { bg: '#263238', surface: '#2c3a41', text: '#dfe6e9', muted: '#9aabb3', accent: '#80cbc4', border: '#37474f' }),
+  t('lampara', 'Lámpara de banquero', { bg: '#18221c', surface: '#1e2a23', text: '#d9e4d3', muted: '#93a58f', accent: '#c9a35b', border: '#26332a', texture: 'vignette' }),
+  t('vino', 'Vino', { bg: '#24161a', surface: '#2c1c21', text: '#ecd9dc', muted: '#ad9198', accent: '#e0708a', border: '#3a252b' }),
   t('contraste-oscuro', 'Alto contraste oscuro', { bg: '#000000', surface: '#000000', text: '#ffffff', muted: '#d4d4d4', accent: '#ffd400', border: '#6e6e6e' }),
 ]
 
@@ -114,15 +123,38 @@ export function resolveTheme(theme: Theme, kelvin: number | null): ResolvedToken
   return { dark, vars }
 }
 
+/** Colores propios del usuario sobre cualquier tema; si cambia fondo o texto, se derivan los tonos secundarios. */
+export function applyColorOverrides(theme: Theme, colors: { text: string; bg: string; accent: string }): Theme {
+  if (!colors.text && !colors.bg && !colors.accent) return theme
+  const bg = colors.bg || theme.bg
+  const text = colors.text || theme.text
+  const out: Theme = { ...theme, bg, text, accent: colors.accent || theme.accent }
+  if (colors.bg || colors.text) {
+    out.surface = colors.bg ? mix(bg, text, 0.03) : theme.surface
+    out.muted = mix(text, bg, 0.36)
+    out.border = mix(bg, text, 0.12)
+    out.heading = colors.text ? text : theme.heading
+    if (theme.selection) out.selection = undefined
+  }
+  if (colors.accent) out.link = undefined
+  return out
+}
+
+export const textureSize = (texture: Texture | undefined) => (texture === 'dots' ? '22px 22px' : texture === 'vignette' ? '100% 100%' : 'auto')
+
 export function textureUrl(texture: Texture | undefined, dark: boolean): string {
   if (!texture || texture === 'none') return 'none'
+  const ink = dark ? '255,255,255' : '40,30,20'
+  if (texture === 'dots') return `radial-gradient(rgba(${ink},${dark ? 0.07 : 0.09}) 1px, transparent 1.4px)`
+  if (texture === 'lines') return `repeating-linear-gradient(to bottom, transparent 0 31px, rgba(${dark ? '255,255,255' : '43,89,195'},${dark ? 0.06 : 0.09}) 31px 32px)`
+  if (texture === 'vignette') return `radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,${dark ? 0.35 : 0.12}) 100%)`
   const opacity = dark ? 0.09 : 0.07
-  const svg: Record<Exclude<Texture, 'none'>, string> = {
+  const svg: Record<'paper' | 'grain' | 'linen', string> = {
     paper: `<filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5 0 0 0 0 .45 0 0 0 0 .35 0 0 0 ${opacity * 6} 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/>`,
     grain: `<filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncA type='linear' slope='${opacity * 5}'/></feComponentTransfer></filter><rect width='100%' height='100%' filter='url(%23n)'/>`,
     linen: `<filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.02 1.2' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5 0 0 0 0 .45 0 0 0 0 .4 0 0 0 ${opacity * 5} 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/>`,
   }
-  return `url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'>${svg[texture]}</svg>")`
+  return `url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'>${svg[texture as 'paper' | 'grain' | 'linen']}</svg>")`
 }
 
 export function newCustomTheme(base: Theme, name: string): Theme {

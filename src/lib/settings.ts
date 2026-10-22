@@ -16,6 +16,7 @@ export interface Typography {
   align: 'start' | 'justify'
   hyphens: boolean
   margin: number // px a cada lado (móvil)
+  paddingY: number // px de aire arriba y abajo del área de lectura
   maxWidth: number // px de columna máxima
   publisherFonts: boolean
   publisherColors: boolean
@@ -25,7 +26,14 @@ export interface Typography {
 
 export interface Settings {
   themeId: string
-  texture: 'theme' | 'none' | 'paper' | 'linen' | 'grain'
+  texture: 'theme' | 'none' | 'paper' | 'linen' | 'grain' | 'dots' | 'lines' | 'vignette'
+  /** Colores propios que se superponen al tema ('' = los del tema) */
+  colors: { text: string; bg: string; accent: string }
+  bgImage: boolean // imagen de fondo propia (guardada en IndexedDB)
+  bgImageOpacity: number // 0..1
+  focusMode: 'off' | 'marco' | 'franja'
+  progressStyle: 'sutil' | 'acento'
+  chapterHeaders: boolean
   typo: Typography
   uiFont: string
   // Lectura
@@ -90,6 +98,7 @@ export const DEFAULT_TYPO: Typography = {
   align: 'start',
   hyphens: false,
   margin: 22,
+  paddingY: 36,
   maxWidth: 680,
   publisherFonts: false,
   publisherColors: false,
@@ -100,6 +109,12 @@ export const DEFAULT_TYPO: Typography = {
 export const DEFAULT_SETTINGS: Settings = {
   themeId: DEFAULT_THEME_ID,
   texture: 'theme',
+  colors: { text: '', bg: '', accent: '' },
+  bgImage: false,
+  bgImageOpacity: 0.25,
+  focusMode: 'off',
+  progressStyle: 'sutil',
+  chapterHeaders: true,
   typo: DEFAULT_TYPO,
   uiFont: 'system-sans',
   tapZones: 'vertical',

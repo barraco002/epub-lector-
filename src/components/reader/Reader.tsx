@@ -10,6 +10,7 @@ import { go, pushCloser } from '../../lib/router'
 import { patchBook } from '../../lib/library'
 import { haptic, onVolumeKey, setBrightness, setImmersive, setKeepAwake, setVolumeKeys } from '../../lib/native'
 import { rainPlaying } from '../../lib/audio/ambient'
+import { bgImageUrl } from '../../lib/background'
 import * as ambient from '../../lib/audio/ambient'
 import { inBreak, pomoEvent, inFocus } from '../../lib/pomodoro'
 import * as pomodoro from '../../lib/pomodoro'
@@ -32,6 +33,7 @@ export function Reader({ bookId }: { bookId: string }) {
   const [image, setImage] = useState<{ src: string; alt: string } | null>(null)
   const [breakShown, setBreakShown] = useState(false)
   const [finished, setFinished] = useState(false)
+  const [chapterPill, setChapterPill] = useState<{ key: number; text: string } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -69,14 +71,25 @@ export function Reader({ bookId }: { bookId: string }) {
         const toc = flattenToc(book.toc)
         const labels: string[] = []
         for (const t of toc) if (t.spine >= 0 && labels[t.spine] === undefined) labels[t.spine] = t.label
+        // Capítulos "de verdad": spine que empieza una entrada del índice
+        const starts = labels.map((l, i) => (l ? i : -1)).filter((i) => i >= 0)
+        const chapterHeader = (i: number) => {
+          if (!settings.peek().chapterHeaders || !labels[i]) return null
+          const n = starts.indexOf(i) + 1
+          return { label: `${n} de ${starts.length}`, title: labels[i] }
+        }
         const chapterLabel = (s: number) => {
           for (let i = s; i >= 0; i--) if (labels[i]) return labels[i]
           return record!.title
         }
 
         const engine = new ReaderEngine(book, scroller, root, stats, {
+          chapterHeader,
           onPosition: (pos, info) => {
+            const prev = position.peek().s
             position.value = { ...pos, progress: info.progress, chapterProgress: info.chapterProgress }
+            // Aviso suave al cruzar a otro capítulo (no al abrir el libro)
+            if (ctx && pos.s !== prev && labels[pos.s] && settings.peek().chapterHeaders) setChapterPill({ key: Date.now(), text: labels[pos.s] })
             ctx?.session.onPosition(pos, info)
             save(pos, info.progress)
           },
@@ -158,7 +171,15 @@ export function Reader({ bookId }: { bookId: string }) {
     if (s.fullscreen) void setImmersive(true)
     if (s.brightness >= 0) void setBrightness(s.brightness)
     void setVolumeKeys(s.volumeKeys)
-    const offVolume = onVolumeKey((dir) => active.value?.scrollScreen(dir === 'down' ? 1 : -1))
+    const offVolume = onVolumeKey((dir) => {
+      const ctx = active.value
+      if (!ctx) return
+      // En modo auto, el volumen regula la velocidad (subir = más rápido)
+      if (ctx.auto.active) {
+        const s = settings.peek()
+        settings.value = { ...s, autoWpm: Math.max(40, Math.min(1200, s.autoWpm + (dir === 'up' ? 10 : -10))) }
+      } else ctx.scrollScreen(dir === 'down' ? 1 : -1)
+    })
 
     let awake = false
     let awakeTimer: ReturnType<typeof setTimeout> | undefined
@@ -295,10 +316,10 @@ export function Reader({ bookId }: { bookId: string }) {
           break
         case '+':
         case '=':
-          if (ctx.auto.running.value) settings.value = { ...settings.value, autoWpm: Math.min(1200, settings.value.autoWpm + 10) }
+          if (ctx.auto.active) settings.value = { ...settings.value, autoWpm: Math.min(1200, settings.value.autoWpm + 10) }
           break
         case '-':
-          if (ctx.auto.running.value) settings.value = { ...settings.value, autoWpm: Math.max(40, settings.value.autoWpm - 10) }
+          if (ctx.auto.active) settings.value = { ...settings.value, autoWpm: Math.max(40, settings.value.autoWpm - 10) }
           break
         case 't':
           openPanel('toc')
@@ -332,15 +353,26 @@ export function Reader({ bookId }: { bookId: string }) {
   }, [chrome.value])
   useEffect(() => () => void delete document.documentElement.dataset.chrome, [])
 
+  // Modo auto: al arrancar se recogen menús y paneles para que nada tape el texto,
+  // y Atrás/Escape sale del modo antes que del libro
+  const autoRunning = active.value?.auto.running.value ?? false
+  const autoActive = autoRunning || (active.value?.auto.paused.value ?? false)
+  useEffect(() => {
+    if (!autoRunning) return
+    chrome.value = false
+    panel.value = null
+  }, [autoRunning])
+  useEffect(() => (autoActive ? pushCloser(() => active.peek()?.auto.stop()) : undefined), [autoActive])
+
   // ——— Toques: zonas para avanzar/retroceder y mostrar el menú ———
   const tap = useRef<{ x: number; y: number; t: number; scrollAt: number } | null>(null)
   const lastScroll = useRef(0)
   const onPointerDown = (e: PointerEvent) => {
     if (e.button !== 0) return
-    // Con autoscroll, cualquier toque lo pausa (y no cuenta como toque de menú)
+    // Con autoscroll, tocar lo pausa al instante (y no cuenta como toque de menú)
     const auto = active.value?.auto
     if (auto?.running.value) {
-      auto.stop()
+      auto.pause()
       tap.current = null
       return
     }
@@ -360,6 +392,11 @@ export function Reader({ bookId }: { bookId: string }) {
     if (sel && !sel.isCollapsed) return
     const target = e.target as Element
     if (target.closest('a, img, button, input, video, audio, .hl-tap')) return
+    // En pausa, otro toque sigue leyendo (arrastrar sí permite recolocar el texto)
+    if (ctx.auto.paused.value) {
+      ctx.auto.start()
+      return
+    }
     // ¿Toque sobre un subrayado? Lo gestiona la capa de selección
     if (ctx.engine.annotationAt(e.clientX, e.clientY)) {
       dispatchEvent(new CustomEvent('lunaria:highlight-tap', { detail: { x: e.clientX, y: e.clientY } }))
@@ -380,12 +417,14 @@ export function Reader({ bookId }: { bookId: string }) {
 
   const s = settings.value
   const cls = ['reader', s.showStatus && 'has-status', !s.typo.publisherFonts && 'f-font', !s.typo.publisherColors && 'f-color', !s.typo.publisherSpacing && 'f-space', s.typo.dimImages && 'dim-img', chrome.value && 'chrome-on']
+    .concat(s.focusMode === 'marco' ? 'focus-marco' : '')
     .filter(Boolean)
     .join(' ')
 
   return (
     <div class={cls} data-state={status}>
       <div class="reader-texture" aria-hidden="true" />
+      {s.bgImage && bgImageUrl.value && <div class="reader-bgimg" style={{ backgroundImage: `url(${bgImageUrl.value})`, opacity: s.bgImageOpacity }} aria-hidden="true" />}
       <div
         class="reader-scroller"
         ref={scrollerRef}
@@ -421,6 +460,12 @@ export function Reader({ bookId }: { bookId: string }) {
       )}
       {status === 'ready' && (
         <>
+          {s.focusMode === 'franja' && <div class="focus-band" aria-hidden="true" />}
+          {chapterPill && !chrome.value && (
+            <div class="ch-pill" key={chapterPill.key} aria-live="polite">
+              {chapterPill.text}
+            </div>
+          )}
           <EdgeProgress />
           <StatusLine />
           <TopBar />

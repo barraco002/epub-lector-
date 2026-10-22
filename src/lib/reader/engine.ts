@@ -19,6 +19,8 @@ export interface EngineCallbacks {
   onFootnote?: (note: { html: DocumentFragment; title: string; target: { s: number; fragment: string } }) => void
   onImage?: (src: string, alt: string) => void
   onChapterRendered?: (s: number) => void
+  /** Cabecera discreta al inicio de un capítulo (null = sin cabecera) */
+  chapterHeader?: (s: number) => { label: string; title: string } | null
   /** Navegación por un enlace interno (no cuenta como lectura) */
   onNavigate?: () => void
 }
@@ -242,7 +244,28 @@ export class ReaderEngine {
       else el.setAttribute('src', url)
     }
 
-    ch.section.replaceChildren(body)
+    const head = this.cb.chapterHeader?.(i)
+    if (head) {
+      // Fuera de .bk-body: no entra en el índice de texto, así no altera posiciones ni subrayados
+      const header = document.createElement('header')
+      header.className = 'ch-head'
+      header.setAttribute('aria-hidden', 'true')
+      const orn = document.createElement('span')
+      orn.className = 'ch-orn'
+      orn.textContent = '❦'
+      const label = document.createElement('span')
+      label.className = 'ch-label'
+      label.textContent = head.label
+      const title = document.createElement('span')
+      title.className = 'ch-title'
+      title.textContent = head.title
+      // Si el libro ya abre con ese mismo título, no lo repetimos
+      const norm = (t: string) => t.replace(/\s+/g, ' ').trim().toLowerCase()
+      const firstHeading = body.querySelector('h1, h2, h3')?.textContent ?? ''
+      if (norm(firstHeading) === norm(head.title)) header.append(orn, label)
+      else header.append(orn, label, title)
+      ch.section.replaceChildren(header, body)
+    } else ch.section.replaceChildren(body)
     ch.section.style.height = ''
     ch.section.dataset.rendered = '1'
     ch.index = new TextIndex(body)

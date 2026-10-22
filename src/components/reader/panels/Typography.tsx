@@ -144,6 +144,7 @@ export function TypographyPanel() {
 
       <Section title="Página">
         <Slider label="Márgenes laterales" value={t.margin} min={0} max={96} step={2} format={(v) => `${v} px`} onInput={(margin) => updateTypo({ margin })} />
+        <Slider label="Aire arriba y abajo" value={t.paddingY ?? 36} min={0} max={140} step={4} format={(v) => `${v} px`} onInput={(paddingY) => updateTypo({ paddingY })} />
         <Slider label="Ancho máximo de línea" value={t.maxWidth} min={400} max={1200} step={20} format={(v) => `${v} px`} onInput={(maxWidth) => updateTypo({ maxWidth })} hint="En pantallas anchas: unas 65-75 letras por línea es lo más cómodo" />
         <div class="row">
           <span class="row-label">Alineación</span>

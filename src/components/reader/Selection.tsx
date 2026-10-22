@@ -9,6 +9,7 @@ import { track } from '../../lib/game/game'
 import { info } from '../../lib/toasts'
 import { debounce, uid } from '../../lib/util'
 import { Sheet, useCloser } from '../ui'
+import { isNative, translateWithApp } from '../../lib/native'
 
 const COLORS: HighlightColor[] = ['yellow', 'green', 'blue', 'pink', 'purple']
 const COLOR_NAMES: Record<HighlightColor, string> = { yellow: 'amarillo', green: 'verde', blue: 'azul', pink: 'rosa', purple: 'morado' }
@@ -113,6 +114,11 @@ function DictionarySheet({ text, mode, onClose }: { text: string; mode: 'define'
         {tr && <p class="dict-tr">{tr}</p>}
       </div>
       <div class="btn-row">
+        {isNative() && (
+          <button type="button" class="btn btn-sm btn-primary" onClick={() => void translateWithApp(text)}>
+            <Languages size={14} /> Traducir con una app
+          </button>
+        )}
         <a class="btn btn-sm" href={googleTranslateUrl(text, to)} target="_blank" rel="noopener noreferrer">
           <ExternalLink size={14} /> Google Translate
         </a>

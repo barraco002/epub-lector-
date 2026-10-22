@@ -12,18 +12,20 @@ import { SearchPanel, TocPanel } from './panels/Navigation'
 function AutoPanel() {
   const ctx = active.value!
   const s = settings.value
-  const running = ctx.auto.running.value
+  void ctx.auto.paused.value
+  const running = ctx.auto.active
   return (
     <div class="auto-panel">
       <button
         type="button"
         class="btn btn-primary btn-block"
         onClick={() => {
-          ctx.auto.toggle()
-          if (!running) panel.value = null
+          // Al arrancar, el lector recoge menús y paneles (ver Reader)
+          if (running) ctx.auto.stop()
+          else ctx.auto.start()
         }}
       >
-        {running ? <Pause size={18} /> : <Play size={18} />} {running ? 'Pausar autoscroll' : 'Empezar autoscroll'}
+        {running ? <Pause size={18} /> : <Play size={18} />} {running ? 'Salir del modo auto' : 'Empezar autoscroll'}
       </button>
       <Section title="Modo">
         <Segmented
@@ -45,7 +47,7 @@ function AutoPanel() {
         <button type="button" class="link-btn" onClick={() => update({ autoWpm: Math.round(readingWpm.value / 10) * 10 })}>
           Usar mi velocidad medida ({readingWpm.value} ppm)
         </button>
-        <p class="muted small">Toca la pantalla para pausar. En el PC: tecla A para empezar/parar y +/− para la velocidad.</p>
+        <p class="muted small">Toca el texto para pausar y otra vez para seguir. En Android, las teclas de volumen cambian la velocidad. En el PC: A para empezar/salir y +/− para la velocidad.</p>
       </Section>
     </div>
   )

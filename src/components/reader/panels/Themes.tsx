@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks'
-import { Check, ChevronLeft, Copy, Download, Pencil, Trash2, Upload } from 'lucide-preact'
+import { Check, ChevronLeft, Copy, Download, Image as ImageIcon, Pencil, Trash2, Upload } from 'lucide-preact'
+import { clearBgImage, setBgImage } from '../../../lib/background'
 import { allThemes, currentTheme, customThemes, saveCustomThemes, settings, update } from '../../../lib/settings'
 import { newCustomTheme, type Texture, type Theme } from '../../../lib/themes'
 import { contrast, isDark } from '../../../lib/color'
@@ -146,6 +147,19 @@ function importTheme() {
   input.click()
 }
 
+function pickBackground() {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.onchange = async () => {
+    const f = input.files?.[0]
+    if (!f) return
+    if (f.size > 8_000_000) return error('Imagen demasiado grande', 'Usa una de menos de 8 MB')
+    await setBgImage(f)
+  }
+  input.click()
+}
+
 export function ThemePanel() {
   const s = settings.value
   const cur = currentTheme.value
@@ -192,19 +206,99 @@ export function ThemePanel() {
         </Section>
       ))}
 
-      <Section title="Textura del fondo">
-        <Segmented
-          label="Textura"
-          value={s.texture}
-          onChange={(texture) => update({ texture })}
-          options={[
-            { value: 'theme', label: 'Del tema' },
-            { value: 'none', label: 'Lisa' },
-            { value: 'paper', label: 'Papel' },
-            { value: 'linen', label: 'Lino' },
-            { value: 'grain', label: 'Grano' },
-          ]}
-        />
+      <Section
+        title="Colores propios"
+        action={
+          (s.colors.text || s.colors.bg || s.colors.accent) && (
+            <button type="button" class="link-btn" onClick={() => update({ colors: { text: '', bg: '', accent: '' } })}>
+              Usar los del tema
+            </button>
+          )
+        }
+      >
+        <p class="muted small">Se aplican encima de cualquier tema y se guardan aunque cambies de tema.</p>
+        <div class="color-grid">
+          {(
+            [
+              ['bg', 'Fondo', cur.bg],
+              ['text', 'Texto', cur.text],
+              ['accent', 'Acento', cur.accent],
+            ] as const
+          ).map(([key, label, base]) => (
+            <label class="color-field" key={key}>
+              <input type="color" value={(s.colors[key] || base).slice(0, 7)} onInput={(e) => update({ colors: { ...s.colors, [key]: (e.target as HTMLInputElement).value } })} />
+              <span>{label}</span>
+              <code>{s.colors[key] ? s.colors[key] : 'del tema'}</code>
+            </label>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Fondo">
+        <div class="chips">
+          {(
+            [
+              ['theme', 'Del tema'],
+              ['none', 'Liso'],
+              ['paper', 'Papel'],
+              ['linen', 'Lino'],
+              ['grain', 'Grano'],
+              ['dots', 'Puntos'],
+              ['vignette', 'Viñeta'],
+            ] as const
+          ).map(([value, label]) => (
+            <button type="button" key={value} class={`chip ${s.texture === value ? 'is-on' : ''}`} aria-pressed={s.texture === value} onClick={() => update({ texture: value })}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <div class="row">
+          <span class="row-label">Imagen propia</span>
+          <span class="row-inline">
+            <button type="button" class="btn btn-sm" onClick={pickBackground}>
+              <ImageIcon size={15} /> {s.bgImage ? 'Cambiar' : 'Elegir'}
+            </button>
+            {s.bgImage && (
+              <button type="button" class="icon-btn" aria-label="Quitar imagen de fondo" onClick={() => void clearBgImage()}>
+                <Trash2 size={16} />
+              </button>
+            )}
+          </span>
+        </div>
+        {s.bgImage && <Slider label="Intensidad de la imagen" value={s.bgImageOpacity} min={0.05} max={0.8} step={0.05} format={(v) => `${Math.round(v * 100)}%`} onInput={(bgImageOpacity) => update({ bgImageOpacity })} />}
+      </Section>
+
+      <Section title="Página">
+        <div class="row stack">
+          <span class="row-label">Modo concentración</span>
+          <Segmented
+            label="Modo concentración"
+            value={s.focusMode}
+            onChange={(focusMode) => update({ focusMode })}
+            options={[
+              { value: 'off', label: 'No' },
+              { value: 'marco', label: 'Marco' },
+              { value: 'franja', label: 'Franja' },
+            ]}
+          />
+          <span class="row-hint">
+            {s.focusMode === 'marco' ? 'El texto queda en una página enmarcada, separada del fondo.' : s.focusMode === 'franja' ? 'Atenúa arriba y abajo: lees en una franja central despejada.' : 'Texto a pantalla completa.'}
+          </span>
+        </div>
+        <div class="row">
+          <span class="row-label">Indicador de avance</span>
+          <select class="select" value={`${s.progressBar}:${s.progressStyle}`} onChange={(e) => {
+            const [progressBar, progressStyle] = (e.target as HTMLSelectElement).value.split(':') as [typeof s.progressBar, typeof s.progressStyle]
+            update({ progressBar, progressStyle })
+          }}>
+            <option value="book:sutil">Libro · discreto</option>
+            <option value="chapter:sutil">Capítulo · discreto</option>
+            <option value="goal:sutil">Meta diaria · discreto</option>
+            <option value="book:acento">Libro · con color</option>
+            <option value="none:sutil">Ninguno</option>
+          </select>
+        </div>
+        <Toggle label="Cabecera al empezar cada capítulo" hint="Número y título del capítulo, y un aviso suave al cruzar de uno a otro" checked={s.chapterHeaders} onChange={(chapterHeaders) => update({ chapterHeaders })} />
       </Section>
 
       <Section title="Protección de luz azul">

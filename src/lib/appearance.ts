@@ -2,7 +2,7 @@
 // Todo se recalcula solo cuando cambia un ajuste: no hay temporizadores ni capas extra.
 import { computed, effect, signal } from '@preact/signals'
 import { currentTheme, settings } from './settings'
-import { resolveTheme, textureUrl } from './themes'
+import { applyColorOverrides, resolveTheme, textureSize, textureUrl } from './themes'
 import { customFonts, fontStack } from './fonts'
 import { intensityToKelvin } from './color'
 
@@ -45,7 +45,7 @@ export const blueActive = computed(() => {
 
 export const tokens = computed(() => {
   const s = settings.value
-  return resolveTheme(currentTheme.value, blueActive.value ? intensityToKelvin(s.blueIntensity) : null)
+  return resolveTheme(applyColorOverrides(currentTheme.value, s.colors), blueActive.value ? intensityToKelvin(s.blueIntensity) : null)
 })
 
 let themeMeta: HTMLMetaElement | null = null
@@ -60,6 +60,7 @@ export function startAppearance() {
     const s = settings.value
     const texture = s.texture === 'theme' ? currentTheme.value.texture : s.texture
     root.style.setProperty('--texture', textureUrl(texture, dark))
+    root.style.setProperty('--texture-size', textureSize(texture))
     themeMeta ??= document.querySelector('meta[name="theme-color"]')
     themeMeta?.setAttribute('content', vars['--bg'])
     root.style.background = vars['--bg']
@@ -86,6 +87,7 @@ export function startAppearance() {
       '--align': typo.align,
       '--hyphens': typo.hyphens ? 'auto' : 'manual',
       '--margin': `${typo.margin}px`,
+      '--pad-y': `${typo.paddingY ?? 36}px`,
       '--measure': `${typo.maxWidth}px`,
       '--rfont': fontStack(typo.font),
       '--hfont': typo.headingFont === 'same' ? fontStack(typo.font) : fontStack(typo.headingFont),
