@@ -66,12 +66,18 @@ jobs:
         if: env.HAS_KEYSTORE == 'true'
         env:
           KEYSTORE_B64: ${{ secrets.LUNARIA_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.LUNARIA_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.LUNARIA_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.LUNARIA_KEY_PASSWORD }}
+        # Por variables de entorno (no interpolando en el script): contraseñas con símbolos no rompen nada
         run: |
-          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/lunaria.p12"
-          echo "LUNARIA_KEYSTORE=$RUNNER_TEMP/lunaria.p12" >> "$GITHUB_ENV"
-          echo "LUNARIA_KEYSTORE_PASSWORD=${{ secrets.LUNARIA_KEYSTORE_PASSWORD }}" >> "$GITHUB_ENV"
-          echo "LUNARIA_KEY_ALIAS=${{ secrets.LUNARIA_KEY_ALIAS }}" >> "$GITHUB_ENV"
-          echo "LUNARIA_KEY_PASSWORD=${{ secrets.LUNARIA_KEY_PASSWORD }}" >> "$GITHUB_ENV"
+          printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/lunaria.p12"
+          {
+            echo "LUNARIA_KEYSTORE=$RUNNER_TEMP/lunaria.p12"
+            echo "LUNARIA_KEYSTORE_PASSWORD=$KS_PASS"
+            echo "LUNARIA_KEY_ALIAS=${KEY_ALIAS:-lunaria}"
+            echo "LUNARIA_KEY_PASSWORD=${KEY_PASS:-$KS_PASS}"
+          } >> "$GITHUB_ENV"
       - name: Compilar APK
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon --stacktrace

@@ -4,4 +4,11 @@
     <string name="title_activity_main">Lunaria</string>
     <string name="package_name">com.lunaria.lector</string>
     <string name="custom_url_scheme">com.lunaria.lector</string>
+    <string name="sc_continuar">Continuar</string>
+    <string name="sc_continuar_largo">Seguir leyendo</string>
+    <string name="sc_pomodoro">Pomodoro</string>
+    <string name="sc_pomodoro_largo">Leer con pomodoro</string>
+    <string name="sc_lluvia">Lluvia</string>
+    <string name="sc_lluvia_largo">Leer con lluvia</string>
+    <string name="widget_desc">Tu racha, la meta de hoy y el libro en curso</string>
 </resources>

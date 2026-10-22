@@ -82,3 +82,30 @@ Decisiones, patrones y trade-offs de esta iteración, pensados para reutilizarlo
   - verificar por lotes y no una propuesta por agente;
   - guardar resultados intermedios en un archivo, para poder retomar sin reejecutar;
   - presupuestar el número de agentes según el límite de uso, no solo según la calidad.
+
+---
+
+# Segunda iteración: las 14 propuestas elegidas
+
+## 10. Lectura
+
+- **Volver tras un salto.** Todo salto explícito (índice, búsqueda, enlace interno, barra de progreso) guarda antes el sitio y muestra «Volver a…». Si hay varios saltos seguidos se conserva el **primero**: es al que quieres volver tras mirar varios resultados de búsqueda.
+- **Renglón entero al pasar pantalla.** Se busca con `caretPositionFromPoint` el renglón que cruza el borde inferior y se desplaza justo hasta su parte de arriba. Un primer intento dejaba 6 px de margen y asomaban los descendentes de la línea anterior. **Lección:** alinear exactamente con el borde visible. Ese borde visible no es `scrollTop = 0`: en Android está debajo de la barra de estado (`safe-area-inset-top`).
+- **Ancho en letras (`ch`) y `font-size-adjust`.** Un ancho en píxeles cambia de significado con cada fuente; en letras por línea se mantiene la medida tipográfica (45–75). `font-size-adjust: 0.45` (la altura de x de Spectral) hace que cambiar de fuente no cambie el tamaño aparente.
+- **Día/noche.** El tema de noche es un ajuste aparte (`nightThemeId`). Elegir un tema mientras es de noche cambia solo el de noche, así que nunca se pisa el de día.
+
+## 11. Juego
+
+- **Modo de juego.** El filtro está en un único sitio: `toast()`. Así ningún módulo (sesión, logros, metas) tiene que saber del modo. En «Discreto» las celebraciones se guardan para el resumen.
+- **Resumen al cerrar.** Solo aparece si hubo lectura de verdad (1 minuto o 150 palabras): un resumen de 10 segundos de hojeo sería ruido.
+- **Tarjeta para compartir.** Se dibuja en un `canvas` con los colores del tema actual. Se reutiliza `saveFile`, que en el PC descarga y en Android abre Compartir.
+- **Mis palabras.** Se guarda la palabra con su **frase del libro**, porque recordar una palabra en contexto funciona mejor que con una definición suelta. Repaso Leitner en 6 cajas (1, 2, 4, 8, 16 y 32 días): sin algoritmos opacos y fácil de explicar.
+
+## 12. Android
+
+- **Pomodoro sin servicio.** La notificación usa `setUsesChronometer` + `setChronometerCountDown`, así que la cuenta atrás la dibuja el sistema sin despertar la app. Al final salta una alarma exacta (`USE_EXACT_ALARM` en Android 13+, `SCHEDULE_EXACT_ALARM` antes). Con la app delante la alarma no notifica: avisa la web. Con la app oculta, el temporizador de JavaScript se cancela para que no suenen dos avisos.
+- **Foco de audio.** Pérdida temporal (llamada, GPS) → pausa y reanuda. Pérdida definitiva (otra música) → pausa. Auriculares desconectados (`BECOMING_NOISY`) → pausa: nunca suena de golpe por el altavoz.
+- **Pantalla apagada.** Capacitor no pausa el WebView en segundo plano (`KeepRunning`), así que basta un servicio en primer plano de tipo `mediaPlayback` para que Android no mate el proceso. El servicio solo existe mientras suena y con la opción activa.
+- **Copia automática.** La copia de Android tiene una cuota de 25 MB y, si se supera, **no se copia nada**. Con los EPUB en IndexedDB se superaría enseguida. Por eso la regla de copia incluye solo un JSON de progreso (pocos KB) y el paso directo de móvil a móvil (sin cuota) se deja sin limitar, para que se lleve también los libros.
+- **Clave de firma.** Las contraseñas pasan por variables de entorno y no se interpolan en el script de CI: un símbolo como `$` o `"` en la contraseña rompería el paso.
+- **Sin SDK de Android en el entorno de desarrollo** (Google Maven bloqueado): la compilación nativa se verifica en CI. Para reducir sorpresas: APIs con comprobación de versión, `try/catch` alrededor de lo que Android puede negar (avisos, servicios en primer plano) y `javac` local para descartar errores de sintaxis.

@@ -11,7 +11,7 @@ import { loadVocab, vocab, type VocabWord } from './vocab'
 import type { Theme } from './themes'
 import type { TypoPreset } from './settings'
 
-interface Backup {
+export interface Backup {
   app: 'lunaria'
   version: 1
   exportedAt: number
@@ -26,9 +26,15 @@ interface Backup {
 }
 
 export async function exportBackup() {
+  const data = await backupData()
+  await saveFile(new Blob([JSON.stringify(data)], { type: 'application/json' }), `lunaria-copia-${dayKey()}.json`)
+}
+
+/** Todo menos los EPUB: pocos KB, cabe en la copia automática de Android. */
+export async function backupData(): Promise<Backup> {
   flushGame()
   const list = await books.all()
-  const data: Backup = {
+  return {
     app: 'lunaria',
     version: 1,
     exportedAt: Date.now(),
@@ -41,11 +47,13 @@ export async function exportBackup() {
     annotations: await annotations.all(),
     vocab: vocab.value,
   }
-  await saveFile(new Blob([JSON.stringify(data)], { type: 'application/json' }), `lunaria-copia-${dayKey()}.json`)
 }
 
 export async function importBackup(file: File): Promise<string> {
-  const data = JSON.parse(await file.text()) as Backup
+  return restoreData(JSON.parse(await file.text()) as Backup)
+}
+
+export async function restoreData(data: Backup): Promise<string> {
   if (data?.app !== 'lunaria') throw new Error('El archivo no es una copia de Lunaria')
   replaceSettings(data.settings)
   await saveCustomThemes(data.themes ?? [])

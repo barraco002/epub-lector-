@@ -12,8 +12,27 @@ interface LunariaPlugin {
   getPinned(): Promise<{ pinned: boolean }>
   unpin(): Promise<void>
   translateWithApp(opts: { text: string }): Promise<void>
+  scheduleTimer(opts: { endsAt: number; title: string; body: string; endTitle: string; endBody: string }): Promise<void>
+  cancelTimer(): Promise<void>
+  setAudioActive(opts: { active: boolean; screenOff: boolean; title: string }): Promise<void>
+  writeSnapshot(opts: { data: string }): Promise<void>
+  readSnapshot(): Promise<{ data?: string }>
+  updateWidget(opts: WidgetData): Promise<void>
   addListener(event: 'volumeKey', cb: (e: { direction: 'up' | 'down' }) => void): Promise<PluginListenerHandle>
   addListener(event: 'fileOpened', cb: (e: { path: string; name: string }) => void): Promise<PluginListenerHandle>
+  addListener(event: 'audioControl', cb: (e: { action: 'pause' | 'resume'; transient: boolean }) => void): Promise<PluginListenerHandle>
+  addListener(event: 'shortcut', cb: (e: { action: string }) => void): Promise<PluginListenerHandle>
+}
+
+export interface WidgetData {
+  day: string
+  minutes: number
+  goal: number
+  streak: number
+  /** Último día en que la racha sigue viva sin leer (con comodines) */
+  streakUntil: string
+  title: string
+  progress: number
 }
 
 export const isNative = () => Capacitor.isNativePlatform()
@@ -134,4 +153,30 @@ const toBase64 = (blob: Blob) =>
 export async function saveFile(blob: Blob, name: string) {
   if (!isNative()) return downloadBlob(blob, name)
   await Lunaria.shareFile({ name, data: await toBase64(blob), mime: blob.type || 'application/octet-stream' })
+}
+
+// ——— Pomodoro con la pantalla apagada: cuenta atrás en la notificación y alarma al final ———
+
+export const scheduleTimer = (opts: { endsAt: number; title: string; body: string; endTitle: string; endBody: string }) =>
+  isNative() ? quiet(Lunaria.scheduleTimer({ ...opts, endsAt: Math.round(opts.endsAt) })) : Promise.resolve()
+export const cancelTimer = () => (isNative() ? quiet(Lunaria.cancelTimer()) : Promise.resolve())
+
+// ——— Sonido ambiente: foco de audio (llamadas, otras apps, auriculares) y pantalla apagada ———
+
+export const setAudioActive = (active: boolean, screenOff: boolean, title: string) =>
+  isNative() ? quiet(Lunaria.setAudioActive({ active, screenOff, title })) : Promise.resolve()
+
+export function onAudioControl(cb: (action: 'pause' | 'resume', transient: boolean) => void) {
+  if (isNative()) void quiet(Lunaria.addListener('audioControl', (e) => cb(e.action, e.transient)))
+}
+
+// ——— Copia automática, widget y accesos directos ———
+
+export const writeSnapshot = (data: string) => (isNative() ? quiet(Lunaria.writeSnapshot({ data })) : Promise.resolve())
+export const readSnapshot = async () => (isNative() ? ((await quiet(Lunaria.readSnapshot()))?.data ?? null) : null)
+export const updateWidget = (data: WidgetData) => (isNative() ? quiet(Lunaria.updateWidget(data)) : Promise.resolve())
+
+/** lunaria://continuar, pomodoro o lluvia (retenido hasta escucharlo: llega también en arranque en frío). */
+export async function onShortcut(cb: (action: string) => void) {
+  if (isNative()) await quiet(Lunaria.addListener('shortcut', (e) => cb(e.action)))
 }

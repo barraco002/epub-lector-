@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Luna de Lunaria para la barra de estado (blanca: el sistema la tiñe) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="60"
+    android:viewportHeight="60">
+    <group android:translateX="-21" android:translateY="-24">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M48.26,32.16 A23.0,23.0 0 1,0 72.84,62.21 A19.5,19.5 0 0,1 48.26,32.16 Z" />
+    </group>
+</vector>

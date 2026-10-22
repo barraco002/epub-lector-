@@ -6,6 +6,7 @@ import { settings, updateSound } from '../settings'
 import { audio, hold, release } from './context'
 import BakeWorker from './bake.worker?worker&inline'
 import type { BakeInput, BakeRequest, BakeResponse } from './bake.worker'
+import { isNative, onAudioControl, setAudioActive } from '../native'
 
 export interface Preset {
   id: string
@@ -40,6 +41,7 @@ let bus: GainNode | null = null
 let thunderTimer: ReturnType<typeof setTimeout> | undefined
 let sleepTimer: ReturnType<typeof setTimeout> | undefined
 let resumeOnVisible = false
+let resumeAfterInterrupt = false
 
 export const activeIds = computed(() => Object.entries(settings.value.sound.volumes).filter(([, v]) => v > 0).map(([id]) => id))
 export const rainPlaying = computed(() => playing.value && activeIds.value.some((id) => RAIN_IDS.includes(id)))
@@ -252,10 +254,13 @@ effect(() => {
   if (bus && playing.value) bus.gain.setTargetAtTime(m, audio().ctx.currentTime, 0.05)
 })
 
+/** Con la opción activa (Android), un servicio mantiene el sonido con la pantalla apagada. */
+const keepsPlayingHidden = () => isNative() && settings.value.sound.screenOff
+
 // Ahorro de batería: pausa al salir de la app y reanuda al volver
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
-    if (playing.value && settings.value.sound.pauseOnHide) {
+    if (playing.value && settings.value.sound.pauseOnHide && !keepsPlayingHidden()) {
       resumeOnVisible = true
       pause()
     }
@@ -264,6 +269,35 @@ document.addEventListener('visibilitychange', () => {
     play()
   }
 })
+
+// Android: foco de audio (llamadas, otra música, auriculares desconectados) y servicio de pantalla apagada
+let lastAudioState = ''
+effect(() => {
+  const on = playing.value
+  const screenOff = settings.value.sound.screenOff
+  const preset = PRESETS.find((p) => sameMix(p.volumes, settings.value.sound.volumes))
+  const title = preset ? `${preset.icon} ${preset.name}` : 'Sonido ambiente'
+  // Solo cuando cambia algo que le importa al sistema (no en cada ajuste)
+  const key = `${on}|${screenOff}|${on ? title : ''}`
+  if (key === lastAudioState) return
+  lastAudioState = key
+  void setAudioActive(on, screenOff, title)
+})
+onAudioControl((action, transient) => {
+  if (action === 'pause' && playing.value) {
+    resumeAfterInterrupt = transient
+    resumeOnVisible = false
+    pause()
+  } else if (action === 'resume' && resumeAfterInterrupt) {
+    resumeAfterInterrupt = false
+    play()
+  }
+})
+
+function sameMix(a: Record<string, number>, b: Record<string, number>) {
+  const ka = Object.keys(a)
+  return ka.length === Object.keys(b).length && ka.every((k) => k in b)
+}
 
 export function resetSleepTimer() {
   if (playing.value) armSleep()

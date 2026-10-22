@@ -7,6 +7,7 @@ import { loadCustomData } from './lib/settings'
 import { loadCustomFonts } from './lib/fonts'
 import { loadBgImage } from './lib/background'
 import { loadVocab } from './lib/vocab'
+import { initAndroid } from './lib/android'
 import { requestPersistence } from './lib/db'
 import { initNativeFileOpen, isNative, onBackButton, setSystemBars } from './lib/native'
 import { tokens } from './lib/appearance'
@@ -72,6 +73,7 @@ export function App() {
         setReady(true)
       }
       void requestPersistence()
+      void initAndroid()
       void onBackButton(back, () => info('App desfijada', 'Pulsa Atrás otra vez para salir'))
       void initNativeFileOpen(async (file) => {
         const book = await importFiles([file])

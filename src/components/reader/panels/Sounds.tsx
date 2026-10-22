@@ -2,6 +2,7 @@ import { Pause, Play, Square } from 'lucide-preact'
 import { applyPreset, playing, PRESETS, setVolume, stopAll, toggle, resetSleepTimer } from '../../../lib/audio/ambient'
 import { RECIPES } from '../../../lib/audio/generators'
 import { settings, updatePomo, updateSound } from '../../../lib/settings'
+import { isNative } from '../../../lib/native'
 import { Section, Slider, Toggle } from '../../ui'
 
 export function SoundPanel() {
@@ -77,7 +78,17 @@ export function SoundPanel() {
             ))}
           </select>
         </div>
-        <Toggle label="Pausar al salir de la app" hint="Ahorra batería con la pantalla apagada" checked={s.pauseOnHide} onChange={(pauseOnHide) => updateSound({ pauseOnHide })} />
+        {isNative() && (
+          <Toggle
+            label="Seguir sonando con la pantalla apagada"
+            hint="Con controles en la notificación; se pausa solo en llamadas o al quitar los auriculares"
+            checked={s.screenOff}
+            onChange={(screenOff) => updateSound({ screenOff })}
+          />
+        )}
+        {!(isNative() && s.screenOff) && (
+          <Toggle label="Pausar al salir de la app" hint="Ahorra batería con la pantalla apagada" checked={s.pauseOnHide} onChange={(pauseOnHide) => updateSound({ pauseOnHide })} />
+        )}
         <Toggle label="Solo durante el enfoque" hint="Silencio en los descansos del pomodoro" checked={settings.value.pomo.soundsOnlyInFocus} onChange={(soundsOnlyInFocus) => updatePomo({ soundsOnlyInFocus })} />
       </Section>
     </div>

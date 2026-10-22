@@ -7,10 +7,25 @@ import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
 
+    /** Con la app delante, los avisos del pomodoro los da la propia web. */
+    static volatile boolean enPrimerPlano = false;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(LunariaPlugin.class);
         super.onCreate(savedInstanceState);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        enPrimerPlano = true;
+    }
+
+    @Override
+    public void onPause() {
+        enPrimerPlano = false;
+        super.onPause();
     }
 
     /** BridgeActivity también lo llama al arrancar con el intent inicial ("Abrir con Lunaria"). */

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copia automática (Android 11 o anterior): solo el resumen de progreso -->
+<full-backup-content>
+    <include domain="file" path="respaldo" />
+</full-backup-content>

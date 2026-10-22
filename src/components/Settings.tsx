@@ -209,6 +209,12 @@ export function SettingsView() {
               <Upload size={16} /> Restaurar copia
             </button>
           </div>
+          {isNative() && (
+            <p class="muted small">
+              Copia automática: tu progreso, rachas, subrayados y palabras (sin los EPUB) se guardan también en la copia de seguridad de Android. Si reinstalas la app o cambias de móvil,
+              se recuperan solos al abrirla.
+            </p>
+          )}
           <StorageInfo />
         </Section>
 

@@ -1,11 +1,11 @@
 // Pomodoro basado en marcas de tiempo: un único setTimeout hasta el final de la fase.
 // No hay "tic" cada segundo; la interfaz solo se refresca mientras está visible.
-import { computed, signal } from '@preact/signals'
+import { computed, effect, signal } from '@preact/signals'
 import { settings } from './settings'
 import { pomodoroDone } from './game/game'
 import { toast } from './toasts'
 import { playChime } from './audio/chime'
-import { haptic } from './native'
+import { cancelTimer, haptic, isNative, scheduleTimer } from './native'
 
 export type Phase = 'focus' | 'short' | 'long'
 
@@ -45,7 +45,11 @@ function arm() {
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) return
+  // En Android, con la app oculta avisa la alarma del sistema (con sonido aunque la pantalla esté apagada)
+  if (document.hidden) {
+    if (isNative()) clearTimeout(timer)
+    return
+  }
   const s = pomo.value
   if (s.running && s.endsAt && Date.now() >= s.endsAt) complete()
   else arm()
@@ -110,8 +114,12 @@ function complete(skipped = false) {
     if (s.phase === 'long') cycle = 0
   }
   if (!skipped) {
-    playChime(p.chime, s.phase === 'focus' ? 3 : 2)
-    haptic('heavy')
+    // Si terminó con la app oculta, la notificación ya sonó: aquí solo el aviso visual
+    const late = isNative() && s.endsAt != null && Date.now() - s.endsAt > 5000
+    if (!late) {
+      playChime(p.chime, s.phase === 'focus' ? 3 : 2)
+      haptic('heavy')
+    }
     toast({
       kind: 'pomodoro',
       icon: s.phase === 'focus' ? '🍅' : '☀️',
@@ -126,3 +134,33 @@ function complete(skipped = false) {
 }
 
 export const PHASE_LABEL: Record<Phase, string> = { focus: 'Enfoque', short: 'Descanso corto', long: 'Descanso largo' }
+
+// Android: cuenta atrás en la notificación y alarma exacta al final de la fase
+let scheduledFor: number | null = null
+effect(() => {
+  const s = pomo.value
+  if (s.running && s.endsAt) {
+    if (scheduledFor === s.endsAt) return
+    scheduledFor = s.endsAt
+    const focus = s.phase === 'focus'
+    const at = new Date(s.endsAt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
+    void scheduleTimer({
+      endsAt: s.endsAt,
+      title: focus ? '🍅 Enfoque' : `☀️ ${PHASE_LABEL[s.phase]}`,
+      body: `Termina a las ${at}`,
+      endTitle: focus ? '🍅 ¡Pomodoro completado!' : '☀️ Fin del descanso',
+      endBody: focus ? 'Toca descansar un poco' : 'De vuelta a la lectura',
+    })
+  } else if (scheduledFor !== null && !document.hidden) {
+    // Pausa, reinicio o fin con la app delante (con la app oculta se deja sonar la alarma)
+    scheduledFor = null
+    void cancelTimer()
+  }
+})
+// Al volver a la app, los avisos del sistema ya no hacen falta
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && !pomo.value.running && scheduledFor !== null) {
+    scheduledFor = null
+    void cancelTimer()
+  }
+})

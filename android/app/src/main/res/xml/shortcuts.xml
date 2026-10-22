@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="continuar"
+        android:enabled="true"
+        android:icon="@drawable/ic_sc_continuar"
+        android:shortcutShortLabel="@string/sc_continuar"
+        android:shortcutLongLabel="@string/sc_continuar_largo">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="lunaria://continuar"
+            android:targetClass="com.lunaria.lector.MainActivity"
+            android:targetPackage="com.lunaria.lector" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="pomodoro"
+        android:enabled="true"
+        android:icon="@drawable/ic_sc_pomodoro"
+        android:shortcutShortLabel="@string/sc_pomodoro"
+        android:shortcutLongLabel="@string/sc_pomodoro_largo">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="lunaria://pomodoro"
+            android:targetClass="com.lunaria.lector.MainActivity"
+            android:targetPackage="com.lunaria.lector" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="lluvia"
+        android:enabled="true"
+        android:icon="@drawable/ic_sc_lluvia"
+        android:shortcutShortLabel="@string/sc_lluvia"
+        android:shortcutLongLabel="@string/sc_lluvia_largo">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="lunaria://lluvia"
+            android:targetClass="com.lunaria.lector.MainActivity"
+            android:targetPackage="com.lunaria.lector" />
+    </shortcut>
+</shortcuts>

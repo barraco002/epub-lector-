@@ -1,10 +1,20 @@
 package com.lunaria.lector;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.app.backup.BackupManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.ContentResolver;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
+import android.os.Build;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.net.Uri;
@@ -12,6 +22,8 @@ import android.provider.OpenableColumns;
 import android.util.Base64;
 import android.view.Window;
 import android.view.WindowManager;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -23,31 +35,53 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Funciones nativas del lector: pantalla completa inmersiva, pantalla encendida, brillo,
- * teclas de volumen, color de las barras del sistema y apertura de .epub desde otras apps.
+ * teclas de volumen, color de las barras del sistema, apertura de .epub desde otras apps,
+ * avisos del pomodoro, foco de audio, copia automática, accesos directos y widget.
  */
 @CapacitorPlugin(name = "Lunaria")
 public class LunariaPlugin extends Plugin {
 
     static volatile boolean volumeKeysEnabled = false;
     private static LunariaPlugin instance;
+    /** Atajo recibido antes de que el plugin cargase (arranque en frío) */
+    private static String pendingShortcut;
 
     @Override
     public void load() {
         instance = this;
         // El tamaño de letra lo controla el lector: que la escala de fuente del sistema no lo multiplique
         bridge.getWebView().getSettings().setTextZoom(100);
+        if (pendingShortcut != null) {
+            JSObject data = new JSObject();
+            data.put("action", pendingShortcut);
+            pendingShortcut = null;
+            notifyListeners("shortcut", data, true);
+        }
     }
 
     @Override
     protected void handleOnDestroy() {
         if (instance == this) instance = null;
         volumeKeysEnabled = false;
+        pausedByFocus = false;
+        soltarFoco();
+        if (noisyRegistered) {
+            try {
+                getContext().unregisterReceiver(noisyReceiver);
+            } catch (IllegalArgumentException ignored) {
+                // ya estaba anulado
+            }
+            noisyRegistered = false;
+        }
+        AmbientService.detener(getContext());
     }
 
     private WindowInsetsControllerCompat insetsController() {
@@ -195,6 +229,220 @@ public class LunariaPlugin extends Plugin {
         });
     }
 
+    // ——— Pomodoro: cuenta atrás en la notificación y alarma al terminar ———
+
+    @PluginMethod
+    public void scheduleTimer(PluginCall call) {
+        Long endsAt = call.getLong("endsAt");
+        if (endsAt == null) {
+            call.reject("Falta endsAt");
+            return;
+        }
+        pedirPermisoAvisos();
+        Avisos.programarFase(
+            getContext(),
+            endsAt,
+            call.getString("title", "Pomodoro"),
+            call.getString("body", ""),
+            call.getString("endTitle", "Fase terminada"),
+            call.getString("endBody", "")
+        );
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void cancelTimer(PluginCall call) {
+        Avisos.cancelarFase(getContext());
+        call.resolve();
+    }
+
+    /** Android 13+: el permiso de avisos se pide una sola vez, al usar el pomodoro por primera vez. */
+    private void pedirPermisoAvisos() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return;
+        if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return;
+        SharedPreferences prefs = getContext().getSharedPreferences("lunaria", Context.MODE_PRIVATE);
+        if (prefs.getBoolean("avisosPedidos", false)) return;
+        prefs.edit().putBoolean("avisosPedidos", true).apply();
+        ActivityCompat.requestPermissions(getActivity(), new String[] { Manifest.permission.POST_NOTIFICATIONS }, 4207);
+    }
+
+    // ——— Sonido ambiente: foco de audio, auriculares y pantalla apagada ———
+
+    private AudioManager audioManager;
+    private AudioFocusRequest focusRequest;
+    private boolean holdingFocus = false;
+    private boolean pausedByFocus = false;
+    private boolean noisyRegistered = false;
+
+    private final AudioManager.OnAudioFocusChangeListener focusListener = (change) -> {
+        if (change == AudioManager.AUDIOFOCUS_LOSS) {
+            // Otra app de audio o música: pausa y no vuelve sola
+            pausedByFocus = false;
+            emitAudioControl("pause", false);
+        } else if (change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+            // Llamada, nota de voz, navegador GPS…: pausa y vuelve al terminar
+            pausedByFocus = true;
+            emitAudioControl("pause", true);
+        } else if (change == AudioManager.AUDIOFOCUS_GAIN && pausedByFocus) {
+            pausedByFocus = false;
+            emitAudioControl("resume", false);
+        }
+    };
+
+    private final BroadcastReceiver noisyReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Se desconectan los auriculares: nunca suena de golpe por el altavoz
+            if (AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(intent.getAction())) emitAudioControl("pause", false);
+        }
+    };
+
+    @PluginMethod
+    public void setAudioActive(PluginCall call) {
+        boolean active = Boolean.TRUE.equals(call.getBoolean("active", false));
+        boolean screenOff = Boolean.TRUE.equals(call.getBoolean("screenOff", false));
+        String title = call.getString("title", "Sonido ambiente");
+        Context ctx = getContext();
+        if (audioManager == null) audioManager = (AudioManager) ctx.getSystemService(Context.AUDIO_SERVICE);
+        if (active) {
+            pausedByFocus = false;
+            pedirFoco();
+            if (!noisyRegistered) {
+                ContextCompat.registerReceiver(ctx, noisyReceiver, new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY), ContextCompat.RECEIVER_NOT_EXPORTED);
+                noisyRegistered = true;
+            }
+            if (screenOff) AmbientService.iniciar(ctx, title);
+            else AmbientService.detener(ctx);
+        } else {
+            // Pausado por una llamada: se conserva el foco para saber cuándo reanudar
+            if (!pausedByFocus) soltarFoco();
+            if (noisyRegistered) {
+                try {
+                    ctx.unregisterReceiver(noisyReceiver);
+                } catch (IllegalArgumentException ignored) {
+                    // ya estaba anulado
+                }
+                noisyRegistered = false;
+            }
+            AmbientService.detener(ctx);
+        }
+        call.resolve();
+    }
+
+    private void pedirFoco() {
+        if (audioManager == null || holdingFocus) return;
+        int result;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            AudioAttributes attrs = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .build();
+            focusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                .setAudioAttributes(attrs)
+                .setWillPauseWhenDucked(false)
+                .setOnAudioFocusChangeListener(focusListener)
+                .build();
+            result = audioManager.requestAudioFocus(focusRequest);
+        } else {
+            result = legacyRequestFocus();
+        }
+        holdingFocus = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+    }
+
+    @SuppressWarnings("deprecation")
+    private int legacyRequestFocus() {
+        return audioManager.requestAudioFocus(focusListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+    }
+
+    @SuppressWarnings("deprecation")
+    private void soltarFoco() {
+        if (audioManager == null || !holdingFocus) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && focusRequest != null) audioManager.abandonAudioFocusRequest(focusRequest);
+        else audioManager.abandonAudioFocus(focusListener);
+        holdingFocus = false;
+    }
+
+    /** Devuelve false si la web no está viva para recibirlo. */
+    static boolean emitAudioControl(String action, boolean transientLoss) {
+        LunariaPlugin plugin = instance;
+        if (plugin == null) return false;
+        JSObject data = new JSObject();
+        data.put("action", action);
+        data.put("transient", transientLoss);
+        plugin.notifyListeners("audioControl", data);
+        return true;
+    }
+
+    // ——— Copia automática: un resumen pequeño que Android guarda en la nube ———
+
+    private File snapshotFile() {
+        return new File(new File(getContext().getFilesDir(), "respaldo"), "lunaria.json");
+    }
+
+    @PluginMethod
+    public void writeSnapshot(PluginCall call) {
+        String data = call.getString("data", "");
+        new Thread(() -> {
+            try {
+                File file = snapshotFile();
+                File dir = file.getParentFile();
+                if (dir != null && !dir.exists() && !dir.mkdirs()) throw new IllegalStateException("Sin carpeta de copia");
+                File tmp = new File(dir, "lunaria.json.tmp");
+                try (FileOutputStream out = new FileOutputStream(tmp)) {
+                    out.write(data.getBytes(StandardCharsets.UTF_8));
+                    out.getFD().sync();
+                }
+                if (!tmp.renameTo(file)) throw new IllegalStateException("No se pudo guardar la copia");
+                new BackupManager(getContext()).dataChanged();
+                call.resolve();
+            } catch (Exception e) {
+                call.reject("No se pudo guardar la copia automática", e);
+            }
+        }).start();
+    }
+
+    @PluginMethod
+    public void readSnapshot(PluginCall call) {
+        JSObject res = new JSObject();
+        File file = snapshotFile();
+        if (!file.exists()) {
+            call.resolve(res);
+            return;
+        }
+        try (FileInputStream in = new FileInputStream(file)) {
+            byte[] bytes = new byte[(int) file.length()];
+            int off = 0;
+            while (off < bytes.length) {
+                int n = in.read(bytes, off, bytes.length - off);
+                if (n < 0) break;
+                off += n;
+            }
+            res.put("data", new String(bytes, 0, off, StandardCharsets.UTF_8));
+            call.resolve(res);
+        } catch (Exception e) {
+            call.reject("No se pudo leer la copia automática", e);
+        }
+    }
+
+    // ——— Widget de inicio ———
+
+    @PluginMethod
+    public void updateWidget(PluginCall call) {
+        Context ctx = getContext();
+        ctx.getSharedPreferences(RachaWidget.PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString("dia", call.getString("day", ""))
+            .putInt("minutos", call.getInt("minutes", 0))
+            .putInt("meta", call.getInt("goal", 20))
+            .putInt("racha", call.getInt("streak", 0))
+            .putString("rachaHasta", call.getString("streakUntil", ""))
+            .putString("libro", call.getString("title", ""))
+            .putInt("progreso", call.getInt("progress", 0))
+            .apply();
+        RachaWidget.actualizarTodos(ctx);
+        call.resolve();
+    }
+
     static void emitVolumeKey(String direction) {
         LunariaPlugin plugin = instance;
         if (plugin == null) return;
@@ -206,6 +454,18 @@ public class LunariaPlugin extends Plugin {
     /** Copia el EPUB recibido (VIEW o SEND) a la caché y avisa a la web para importarlo. */
     static void handleIntent(Activity activity, Intent intent) {
         if (intent == null) return;
+        // Accesos directos y widget: lunaria://continuar, lunaria://pomodoro, lunaria://lluvia
+        Uri link = intent.getData();
+        if (Intent.ACTION_VIEW.equals(intent.getAction()) && link != null && "lunaria".equals(link.getScheme())) {
+            intent.setAction(Intent.ACTION_MAIN);
+            intent.setData(null);
+            JSObject data = new JSObject();
+            data.put("action", link.getHost());
+            LunariaPlugin plugin = instance;
+            if (plugin != null) plugin.notifyListeners("shortcut", data, true);
+            else pendingShortcut = link.getHost();
+            return;
+        }
         Uri uri = null;
         if (Intent.ACTION_VIEW.equals(intent.getAction())) {
             uri = intent.getData();
