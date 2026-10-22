@@ -26,6 +26,7 @@ export interface SessionView {
 export class ReadingSession {
   readonly view = signal<SessionView>({ ms: 0, words: 0, startProgress: 0, progress: 0, readFraction: 0 })
   private readChars = 0
+  chaptersDone = 0
   private lastAbs: number | null = null
   private lastPosAt = performance.now()
   private bucket = 2000
@@ -84,6 +85,7 @@ export class ReadingSession {
         toast({ kind: 'progress', icon: '📖', title: `Capítulo terminado`, body: `+10 XP · vas en ${Math.round(info.progress * 100)}%`, bar: info.progress })
       }
       chapterDone()
+      this.chaptersDone++
     }
     this.lastChapter = pos.s
     this.lastChapterProgress = info.chapterProgress

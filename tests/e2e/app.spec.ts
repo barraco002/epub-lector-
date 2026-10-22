@@ -177,16 +177,138 @@ test('tipografía y temas cambian en vivo y se guardan', async ({ page }) => {
   await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgb(46, 52, 64)')
 })
 
-test('filtro de luz azul calienta los colores del tema', async ({ page }) => {
+test('filtro de luz azul y par día/noche de un toque', async ({ page }) => {
   await importBooks(page, [CORTO])
   await openBook(page, 'A Short Book')
   const bg = () => page.evaluate(() => getComputedStyle(document.querySelector('.reader')!).backgroundColor)
   expect(await bg()).toBe('rgb(255, 255, 255)')
   await showMenu(page)
-  await page.locator('.r-action', { hasText: 'Luz azul' }).click()
+  await page.locator('.r-action', { hasText: 'Tema' }).click()
+  await page.getByRole('switch', { name: 'Filtro de luz azul' }).click()
   await expect.poll(bg).not.toBe('rgb(255, 255, 255)')
   const [r, , b] = (await bg()).match(/\d+/g)!.map(Number)
   expect(r).toBeGreaterThan(b)
+  await page.getByRole('switch', { name: 'Filtro de luz azul' }).click()
+  await expect.poll(bg).toBe('rgb(255, 255, 255)')
+  await page.keyboard.press('Escape')
+
+  // Un toque pasa al tema de noche; elegir tema de noticia cambia solo el de noche
+  await showMenu(page)
+  await page.locator('.r-action', { hasText: 'Día' }).click()
+  await expect.poll(async () => (await bg()).match(/\d+/g)!.map(Number)[0]).toBeLessThan(80)
+  await page.locator('.r-action', { hasText: 'Tema' }).click()
+  await page.locator('.swatch[title="Nord"]').click()
+  await expect.poll(bg).toBe('rgb(46, 52, 64)')
+  await page.keyboard.press('Escape')
+  await showMenu(page)
+  await page.locator('.r-action', { hasText: 'Noche' }).click()
+  await expect.poll(bg).toBe('rgb(255, 255, 255)')
+  await page.locator('.r-action', { hasText: 'Día' }).click()
+  await expect.poll(bg).toBe('rgb(46, 52, 64)')
+})
+
+test('volver tras un salto y marca «aquí ibas» al pasar pantalla', async ({ page }) => {
+  await importBooks(page, [NOVELA])
+  await openBook(page, 'La novela de prueba')
+  await page.keyboard.press('t')
+  await page.locator('.toc-item', { hasText: 'Capítulo 20' }).click()
+  await expect(page.locator('.return-chip')).toContainText('Volver a')
+  await page.locator('.return-go').click()
+  await expect(page.locator('.return-chip')).toHaveCount(0)
+  await expect.poll(async () => page.locator('section.ch[data-i="0"]').evaluate((el) => el.getBoundingClientRect().bottom > 0)).toBe(true)
+
+  // Pasar pantalla: el renglón cortado sube arriba entero y se marca
+  await page.keyboard.press('Space')
+  await expect(page.locator('.here-mark')).toHaveCount(1)
+  await page.waitForTimeout(700)
+  const cut = await page.evaluate(() => {
+    const top = document.querySelector('.reader-scroller')!.getBoundingClientRect().top
+    const w = document.createTreeWalker(document.querySelector('#bk')!, NodeFilter.SHOW_TEXT)
+    for (let n = w.nextNode(); n; n = w.nextNode()) {
+      const r = document.createRange()
+      r.selectNodeContents(n)
+      for (const rect of r.getClientRects()) if (rect.bottom > top && rect.height) return rect.top - top
+    }
+    return null
+  })
+  // Ningún renglón queda medio tapado por el borde superior
+  expect(cut).not.toBeNull()
+  expect(cut!).toBeGreaterThanOrEqual(-2)
+})
+
+test('resumen de sesión al cerrar y modo de juego discreto', async ({ page }) => {
+  await importBooks(page, [NOVELA])
+  await page.getByRole('button', { name: 'Ajustes' }).click()
+  await page.getByRole('radio', { name: 'Discreto' }).click()
+  await page.getByRole('button', { name: 'Volver' }).click()
+  await openBook(page, 'La novela de prueba')
+  for (let i = 0; i < 6; i++) {
+    await page.keyboard.press('Space')
+    await page.waitForTimeout(450)
+  }
+  // En modo discreto no hay avisos de progreso mientras se lee
+  await expect(page.locator('.toast')).toHaveCount(0)
+  await page.keyboard.press('m')
+  await page.locator('.r-top').getByRole('button', { name: 'Volver a la biblioteca' }).click()
+  const sheet = page.locator('.sheet', { hasText: 'Sesión de lectura' })
+  await expect(sheet).toBeVisible()
+  await expect(sheet).toContainText('palabras')
+  await expect(sheet).toContainText('XP')
+  await sheet.getByRole('button', { name: 'Listo' }).click()
+  await expect(sheet).toHaveCount(0)
+})
+
+test('ficha de libro terminado y Mis palabras con repaso', async ({ page }) => {
+  await page.route('**/api.dictionaryapi.dev/**', (r) =>
+    r.fulfill({ json: [{ word: 'rain', phonetic: '/reɪn/', meanings: [{ partOfSpeech: 'noun', definitions: [{ definition: 'Water falling in drops.' }] }] }] }),
+  )
+  await page.route('**/api.mymemory.translated.net/**', (r) => r.fulfill({ json: { responseData: { translatedText: 'lluvia' }, responseStatus: 200 } }))
+  await importBooks(page, [CORTO])
+  await openBook(page, 'A Short Book')
+  await page.evaluate(() => {
+    const p = document.querySelectorAll('#bk p')[2]
+    const t = p.firstChild as Text
+    const at = t.data.indexOf('rain')
+    const r = document.createRange()
+    r.setStart(t, at)
+    r.setEnd(t, at + 4)
+    getSelection()!.removeAllRanges()
+    getSelection()!.addRange(r)
+  })
+  await page.locator('.sel-menu').getByRole('button', { name: 'Definir' }).click()
+  await expect(page.locator('.dict')).toContainText('Water falling in drops.')
+  await page.getByRole('button', { name: 'Guardar palabra' }).click()
+  await expect(page.getByRole('button', { name: 'En Mis palabras', exact: true })).toBeDisabled()
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('m')
+  await page.locator('.r-top').getByRole('button', { name: 'Volver a la biblioteca' }).click()
+
+  // La palabra vence mañana: adelantamos el reloj para repasarla
+  await page.getByRole('button', { name: 'Progreso y logros' }).click()
+  await expect(page.locator('.vocab-section')).toContainText('1 guardadas')
+  await page.getByRole('button', { name: 'Ver todas' }).click()
+  await expect(page.locator('.vocab-list')).toContainText('lluvia')
+  await page.clock.install({ time: Date.now() + 2 * 86_400_000 })
+  await page.reload()
+  await page.getByRole('button', { name: 'Progreso y logros' }).click()
+  await page.getByRole('button', { name: 'Repasar 1 palabra' }).click()
+  await expect(page.locator('.vocab-context mark')).toHaveText('rain')
+  await page.getByRole('button', { name: 'Mostrar significado' }).click()
+  await page.getByRole('button', { name: 'La sabía' }).click()
+  await expect(page.locator('.sheet')).toContainText('¡Repaso hecho!')
+  await page.getByRole('button', { name: 'Listo' }).click()
+  await page.getByRole('button', { name: 'Volver' }).click()
+
+  // Ficha de terminado desde el menú del libro
+  await page.locator('.book-card').getByRole('button', { name: /Opciones|Más/ }).click()
+  await page.getByRole('button', { name: 'Marcar como terminado' }).click()
+  await page.locator('.book-card').getByRole('button', { name: /Opciones|Más/ }).click()
+  await page.getByRole('button', { name: 'Ficha de libro terminado' }).click()
+  await expect(page.locator('.exlibris')).toContainText('A Short Book')
+  await expect(page.getByRole('button', { name: 'Guardar tarjeta' })).toBeEnabled()
+  const download = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Guardar tarjeta' }).click()
+  expect((await download).suggestedFilename()).toMatch(/A Short Book - Lunaria\.png/)
 })
 
 test('modo auto: sin menús encima, tocar pausa y reanuda, Escape sale', async ({ page }) => {

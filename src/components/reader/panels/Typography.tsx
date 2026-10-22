@@ -131,6 +131,7 @@ export function TypographyPanel() {
           </span>
         </button>
         <Slider label="Tamaño" value={t.size} min={12} max={40} step={1} format={(v) => `${v} px`} onInput={(size) => updateTypo({ size })} />
+        <Toggle label="Mismo tamaño al cambiar de fuente" hint="Iguala la altura de las minúsculas entre fuentes" checked={t.normalizeSize !== false} onChange={(normalizeSize) => updateTypo({ normalizeSize })} />
         <Slider label="Grosor" value={t.weight} min={250} max={700} step={25} onInput={(weight) => updateTypo({ weight })} hint="Funciona mejor con fuentes variables (casi todas las incluidas)" />
       </Section>
 
@@ -145,7 +146,7 @@ export function TypographyPanel() {
       <Section title="Página">
         <Slider label="Márgenes laterales" value={t.margin} min={0} max={96} step={2} format={(v) => `${v} px`} onInput={(margin) => updateTypo({ margin })} />
         <Slider label="Aire arriba y abajo" value={t.paddingY ?? 36} min={0} max={140} step={4} format={(v) => `${v} px`} onInput={(paddingY) => updateTypo({ paddingY })} />
-        <Slider label="Ancho máximo de línea" value={t.maxWidth} min={400} max={1200} step={20} format={(v) => `${v} px`} onInput={(maxWidth) => updateTypo({ maxWidth })} hint="En pantallas anchas: unas 65-75 letras por línea es lo más cómodo" />
+        <Slider label="Letras por línea" value={t.measure ?? 70} min={40} max={100} step={2} format={(v) => `${v}`} onInput={(measure) => updateTypo({ measure })} hint="Lo más cómodo son unas 60-75. En el móvil manda el ancho de la pantalla." />
         <div class="row">
           <span class="row-label">Alineación</span>
           <Segmented

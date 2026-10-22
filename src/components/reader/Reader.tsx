@@ -14,10 +14,12 @@ import { bgImageUrl } from '../../lib/background'
 import * as ambient from '../../lib/audio/ambient'
 import { inBreak, pomoEvent, inFocus } from '../../lib/pomodoro'
 import * as pomodoro from '../../lib/pomodoro'
-import { throttle } from '../../lib/util'
-import { error as toastError } from '../../lib/toasts'
-import { active, bookAnnotations, chrome, flattenToc, openPanel, panel, position, type ActiveReader } from './state'
-import { BottomBar, EdgeProgress, StatusLine, TopBar, AutoPill } from './Chrome'
+import { prefersReducedMotion, throttle } from '../../lib/util'
+import { error as toastError, pendingCelebrations } from '../../lib/toasts'
+import { flushGame, profile } from '../../lib/game/game'
+import { sessionSummary } from '../../lib/summary'
+import { active, bookAnnotations, chrome, flattenToc, hereMark, openPanel, panel, position, returnSpot, type ActiveReader } from './state'
+import { BottomBar, EdgeProgress, StatusLine, TopBar, AutoPill, ReturnChip, HereMark } from './Chrome'
 import { Panels } from './Panels'
 import { SelectionLayer } from './Selection'
 import { BreakOverlay, FootnotePopup, ImageViewer, type FootnoteData } from './Overlays'
@@ -33,12 +35,17 @@ export function Reader({ bookId }: { bookId: string }) {
   const [image, setImage] = useState<{ src: string; alt: string } | null>(null)
   const [breakShown, setBreakShown] = useState(false)
   const [finished, setFinished] = useState(false)
-  const [chapterPill, setChapterPill] = useState<{ key: number; text: string } | null>(null)
+  const [chapterPill, setChapterPill] = useState<{
+    key: number
+    text: string
+  } | null>(null)
 
   useEffect(() => {
     let cancelled = false
     let ctx: ActiveReader | null = null
     let record: BookRecord | null = null
+    let xpAtOpen = 0
+    let finishedNow = false
     const cleanups: (() => void)[] = []
     const scroller = scrollerRef.current!
     const root = rootRef.current!
@@ -87,23 +94,39 @@ export function Reader({ bookId }: { bookId: string }) {
           chapterHeader,
           onPosition: (pos, info) => {
             const prev = position.peek().s
-            position.value = { ...pos, progress: info.progress, chapterProgress: info.chapterProgress }
+            position.value = {
+              ...pos,
+              progress: info.progress,
+              chapterProgress: info.chapterProgress,
+            }
             // Aviso suave al cruzar a otro capítulo (no al abrir el libro)
             if (ctx && pos.s !== prev && labels[pos.s] && settings.peek().chapterHeaders) setChapterPill({ key: Date.now(), text: labels[pos.s] })
             ctx?.session.onPosition(pos, info)
             save(pos, info.progress)
           },
           onFootnote: (n) => setFootnote(n),
-          onNavigate: () => ctx?.session.markJump(),
+          onNavigate: () => {
+            ctx?.remember()
+            ctx?.session.markJump()
+          },
           onImage: (src, alt) => setImage({ src, alt }),
         })
-        const session = new ReadingSession(record, (s) => engine.chapterWordsRatio(s), () => {
-          setFinished(true)
-          const patch = { status: 'finished' as const, finishedAt: Date.now(), progress: 1 }
-          record = { ...record!, ...patch }
-          void books.update(record.id, patch)
-          patchBook(record.id, patch)
-        })
+        const session = new ReadingSession(
+          record,
+          (s) => engine.chapterWordsRatio(s),
+          () => {
+            setFinished(true)
+            finishedNow = true
+            const patch = {
+              status: 'finished' as const,
+              finishedAt: Date.now(),
+              progress: 1,
+            }
+            record = { ...record!, ...patch }
+            void books.update(record.id, patch)
+            patchBook(record.id, patch)
+          },
+        )
         const auto = new AutoScroller(
           scroller,
           () => engine.wordsPerPixel(),
@@ -114,16 +137,49 @@ export function Reader({ bookId }: { bookId: string }) {
         session.isAutoscrolling = () => auto.running.value
         session.isRaining = () => rainPlaying.value
 
+        const remember = () => {
+          // Varios saltos seguidos (p. ej. resultados de búsqueda): se conserva el sitio original
+          if (returnSpot.peek()) return
+          const p = position.peek()
+          returnSpot.value = { s: p.s, c: p.c, label: chapterLabel(p.s) }
+        }
         const jump: ActiveReader['jump'] = async (target) => {
+          remember()
           session.markJump()
           await engine.goTo(target)
         }
         const scrollScreen = (dir: 1 | -1) => {
-          const h = scroller.clientHeight * settings.value.tapScrollRatio
-          scroller.scrollBy({ top: dir * h, behavior: 'smooth' })
+          const rect = scroller.getBoundingClientRect()
+          let h = scroller.clientHeight * settings.value.tapScrollRatio
+          if (dir === 1) {
+            // El renglón cortado en el borde pasa a ser el primero: nunca se pierde media línea
+            // Bajo la barra de estado del sistema no se ve: el renglón se coloca justo debajo
+            const padTop = scroller.querySelector<HTMLElement>('.reader-pad-top')
+            const safeTop = padTop ? Math.max(0, padTop.offsetHeight - (settings.value.typo.paddingY ?? 36)) : 0
+            const line = engine.lineTopAt(rect.top + h)
+            const top = line ? line.top - rect.top - safeTop : 0
+            if (line && top > h * 0.5) {
+              h = top
+              hereMark.value = { key: Date.now(), top: rect.top + safeTop + 2, left: line.left }
+            }
+          }
+          scroller.scrollBy({
+            top: dir * h,
+            behavior: settings.value.instantPaging || prefersReducedMotion() ? 'instant' : 'smooth',
+          })
           session.activity()
         }
-        ctx = { book, record, engine, session, auto, chapterLabel, jump, scrollScreen }
+        ctx = {
+          book,
+          record,
+          engine,
+          session,
+          auto,
+          chapterLabel,
+          jump,
+          scrollScreen,
+          remember,
+        }
 
         bookAnnotations.value = await annotations.forBook(bookId)
         engine.setAnnotations(bookAnnotations.value)
@@ -131,10 +187,16 @@ export function Reader({ bookId }: { bookId: string }) {
         engine.observe()
         if (cancelled) return
         active.value = ctx
+        xpAtOpen = profile.peek().xp
+        pendingCelebrations.value = []
+        sessionSummary.value = null
         setStatus('ready')
         if (record.status === 'new') {
           record = { ...record, status: 'reading' }
-          void books.update(record.id, { status: 'reading', openedAt: Date.now() })
+          void books.update(record.id, {
+            status: 'reading',
+            openedAt: Date.now(),
+          })
           patchBook(record.id, { status: 'reading', openedAt: Date.now() })
         }
       } catch (e) {
@@ -152,12 +214,32 @@ export function Reader({ bookId }: { bookId: string }) {
         // Última posición emitida: al desmontar, el DOM puede no estar ya en la página para medirlo
         const last = position.peek()
         ctx.session.end()
+        flushGame()
+        const v = ctx.session.view.value
+        const s = settings.peek()
+        if (record && s.sessionSummary && (finishedNow || v.ms >= 60_000 || v.words >= 150)) {
+          sessionSummary.value = {
+            bookId: record.id,
+            title: record.title,
+            ms: v.ms,
+            words: v.words,
+            readFraction: v.readFraction,
+            progress: last.progress,
+            xp: profile.peek().xp - xpAtOpen,
+            chapters: ctx.session.chaptersDone,
+            celebrations: pendingCelebrations.peek(),
+            finished: finishedNow,
+          }
+        }
+        pendingCelebrations.value = []
         save({ s: last.s, c: last.c }, last.progress)
         save.flush()
         ctx.auto.stop()
         ctx.engine.destroy()
       }
       active.value = null
+      returnSpot.value = null
+      hereMark.value = null
       panel.value = null
       chrome.value = false
       bookAnnotations.value = []
@@ -177,7 +259,10 @@ export function Reader({ bookId }: { bookId: string }) {
       // En modo auto, el volumen regula la velocidad (subir = más rápido)
       if (ctx.auto.active) {
         const s = settings.peek()
-        settings.value = { ...s, autoWpm: Math.max(40, Math.min(1200, s.autoWpm + (dir === 'up' ? 10 : -10))) }
+        settings.value = {
+          ...s,
+          autoWpm: Math.max(40, Math.min(1200, s.autoWpm + (dir === 'up' ? 10 : -10))),
+        }
       } else ctx.scrollScreen(dir === 'down' ? 1 : -1)
     })
 
@@ -316,10 +401,18 @@ export function Reader({ bookId }: { bookId: string }) {
           break
         case '+':
         case '=':
-          if (ctx.auto.active) settings.value = { ...settings.value, autoWpm: Math.min(1200, settings.value.autoWpm + 10) }
+          if (ctx.auto.active)
+            settings.value = {
+              ...settings.value,
+              autoWpm: Math.min(1200, settings.value.autoWpm + 10),
+            }
           break
         case '-':
-          if (ctx.auto.active) settings.value = { ...settings.value, autoWpm: Math.max(40, settings.value.autoWpm - 10) }
+          if (ctx.auto.active)
+            settings.value = {
+              ...settings.value,
+              autoWpm: Math.max(40, settings.value.autoWpm - 10),
+            }
           break
         case 't':
           openPanel('toc')
@@ -365,7 +458,12 @@ export function Reader({ bookId }: { bookId: string }) {
   useEffect(() => (autoActive ? pushCloser(() => active.peek()?.auto.stop()) : undefined), [autoActive])
 
   // ——— Toques: zonas para avanzar/retroceder y mostrar el menú ———
-  const tap = useRef<{ x: number; y: number; t: number; scrollAt: number } | null>(null)
+  const tap = useRef<{
+    x: number
+    y: number
+    t: number
+    scrollAt: number
+  } | null>(null)
   const lastScroll = useRef(0)
   const onPointerDown = (e: PointerEvent) => {
     if (e.button !== 0) return
@@ -376,7 +474,12 @@ export function Reader({ bookId }: { bookId: string }) {
       tap.current = null
       return
     }
-    tap.current = { x: e.clientX, y: e.clientY, t: performance.now(), scrollAt: lastScroll.current }
+    tap.current = {
+      x: e.clientX,
+      y: e.clientY,
+      t: performance.now(),
+      scrollAt: lastScroll.current,
+    }
   }
   const onPointerUp = (e: PointerEvent) => {
     const start = tap.current
@@ -399,7 +502,11 @@ export function Reader({ bookId }: { bookId: string }) {
     }
     // ¿Toque sobre un subrayado? Lo gestiona la capa de selección
     if (ctx.engine.annotationAt(e.clientX, e.clientY)) {
-      dispatchEvent(new CustomEvent('lunaria:highlight-tap', { detail: { x: e.clientX, y: e.clientY } }))
+      dispatchEvent(
+        new CustomEvent('lunaria:highlight-tap', {
+          detail: { x: e.clientX, y: e.clientY },
+        }),
+      )
       return
     }
     if (panel.value) {
@@ -416,7 +523,15 @@ export function Reader({ bookId }: { bookId: string }) {
   }
 
   const s = settings.value
-  const cls = ['reader', s.showStatus && 'has-status', !s.typo.publisherFonts && 'f-font', !s.typo.publisherColors && 'f-color', !s.typo.publisherSpacing && 'f-space', s.typo.dimImages && 'dim-img', chrome.value && 'chrome-on']
+  const cls = [
+    'reader',
+    s.showStatus && 'has-status',
+    !s.typo.publisherFonts && 'f-font',
+    !s.typo.publisherColors && 'f-color',
+    !s.typo.publisherSpacing && 'f-space',
+    s.typo.dimImages && 'dim-img',
+    chrome.value && 'chrome-on',
+  ]
     .concat(s.focusMode === 'marco' ? 'focus-marco' : '')
     .filter(Boolean)
     .join(' ')
@@ -424,7 +539,16 @@ export function Reader({ bookId }: { bookId: string }) {
   return (
     <div class={cls} data-state={status}>
       <div class="reader-texture" aria-hidden="true" />
-      {s.bgImage && bgImageUrl.value && <div class="reader-bgimg" style={{ backgroundImage: `url(${bgImageUrl.value})`, opacity: s.bgImageOpacity }} aria-hidden="true" />}
+      {s.bgImage && bgImageUrl.value && (
+        <div
+          class="reader-bgimg"
+          style={{
+            backgroundImage: `url(${bgImageUrl.value})`,
+            opacity: s.bgImageOpacity,
+          }}
+          aria-hidden="true"
+        />
+      )}
       <div
         class="reader-scroller"
         ref={scrollerRef}
@@ -471,6 +595,8 @@ export function Reader({ bookId }: { bookId: string }) {
           <TopBar />
           <BottomBar />
           <AutoPill />
+          <ReturnChip />
+          <HereMark />
           <Panels />
           <SelectionLayer />
         </>

@@ -6,6 +6,7 @@ import { loadGame } from './lib/game/game'
 import { loadCustomData } from './lib/settings'
 import { loadCustomFonts } from './lib/fonts'
 import { loadBgImage } from './lib/background'
+import { loadVocab } from './lib/vocab'
 import { requestPersistence } from './lib/db'
 import { initNativeFileOpen, isNative, onBackButton, setSystemBars } from './lib/native'
 import { tokens } from './lib/appearance'
@@ -15,6 +16,7 @@ import { Reader } from './components/reader/Reader'
 import { Stats } from './components/Stats'
 import { SettingsView } from './components/Settings'
 import { Toasts } from './components/Toasts'
+import { SessionSummarySheet } from './components/Summary'
 
 function DropZone() {
   const [over, setOver] = useState(false)
@@ -65,7 +67,7 @@ export function App() {
   useEffect(() => {
     void (async () => {
       try {
-        await Promise.all([loadGame(), loadCustomData(), loadCustomFonts(), refreshLibrary(), loadBgImage()])
+        await Promise.all([loadGame(), loadCustomData(), loadCustomFonts(), refreshLibrary(), loadBgImage(), loadVocab()])
       } finally {
         setReady(true)
       }
@@ -99,6 +101,7 @@ export function App() {
       {r.name === 'reader' && <Reader key={r.bookId} bookId={r.bookId} />}
       {r.name === 'stats' && <Stats />}
       {r.name === 'settings' && <SettingsView />}
+      {r.name !== 'reader' && <SessionSummarySheet />}
       <Toasts />
       <DropZone />
     </>

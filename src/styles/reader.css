@@ -69,6 +69,7 @@
 #bk {
   --para: var(--ps);
   max-width: calc(var(--measure) + 2 * var(--margin));
+  font-size-adjust: var(--size-adjust);
   margin: 0 auto;
   padding: 0 var(--margin);
   font-family: var(--rfont);
@@ -1225,4 +1226,93 @@
 .r-action {
   font-size: 10px;
   letter-spacing: 0.04em;
+}
+
+.day-night {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.dn-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  text-align: left;
+}
+.dn-card.is-on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* Volver tras un salto */
+.return-chip {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--safe-bottom) + 34px);
+  z-index: 27;
+  display: flex;
+  align-items: center;
+  max-width: min(90vw, 440px);
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 6px 22px var(--shadow);
+  animation: toast-in 0.25s ease;
+}
+.chrome-on .return-chip {
+  bottom: calc(var(--safe-bottom) + 230px);
+}
+.return-go {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 6px 9px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.return-go em {
+  font-family: var(--rfont);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.return-x {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: var(--muted);
+  flex: none;
+}
+
+/* "Aquí ibas" */
+.here-mark {
+  position: fixed;
+  z-index: 5;
+  width: 3px;
+  height: 1.2em;
+  font-size: var(--fs);
+  border-radius: 2px;
+  background: var(--accent);
+  pointer-events: none;
+  animation: here-mark 2.2s ease forwards;
+}
+@keyframes here-mark {
+  0%,
+  55% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
 }

@@ -75,7 +75,21 @@ export function SettingsView() {
             />
             <span class="row-hint">Tocar arriba (o a la izquierda) retrocede una pantalla, abajo (o a la derecha) avanza y el centro abre el menú.</span>
           </div>
-          <Slider label="Desplazamiento por toque" value={s.tapScrollRatio} min={0.5} max={1} step={0.05} format={(v) => `${Math.round(v * 100)}% de pantalla`} onInput={(tapScrollRatio) => update({ tapScrollRatio })} />
+          <Slider
+            label="Desplazamiento por toque"
+            value={s.tapScrollRatio}
+            min={0.5}
+            max={1}
+            step={0.05}
+            format={(v) => `${Math.round(v * 100)}% de pantalla`}
+            onInput={(tapScrollRatio) => update({ tapScrollRatio })}
+          />
+          <Toggle
+            label="Pasar pantalla sin animación"
+            hint="Salto instantáneo (también si el sistema pide quitar animaciones)"
+            checked={s.instantPaging}
+            onChange={(instantPaging) => update({ instantPaging })}
+          />
           {isNative() && <Toggle label="Pasar con las teclas de volumen" checked={s.volumeKeys} onChange={(volumeKeys) => update({ volumeKeys })} />}
           {isNative() && <Toggle label="Pantalla completa al leer" checked={s.fullscreen} onChange={(fullscreen) => update({ fullscreen })} />}
           <div class="row">
@@ -91,7 +105,15 @@ export function SettingsView() {
           <Toggle label="Línea de estado" hint="Hora, batería, progreso y tiempo restante del capítulo" checked={s.showStatus} onChange={(showStatus) => update({ showStatus })} />
           <div class="row">
             <span class="row-label">Barra de progreso fina</span>
-            <select class="select" value={s.progressBar} onChange={(e) => update({ progressBar: (e.target as HTMLSelectElement).value as typeof s.progressBar })}>
+            <select
+              class="select"
+              value={s.progressBar}
+              onChange={(e) =>
+                update({
+                  progressBar: (e.target as HTMLSelectElement).value as typeof s.progressBar,
+                })
+              }
+            >
               <option value="book">Libro</option>
               <option value="chapter">Capítulo</option>
               <option value="goal">Meta diaria</option>
@@ -101,6 +123,32 @@ export function SettingsView() {
         </Section>
 
         <Section title="Metas y avisos">
+          <div class="row stack">
+            <span class="row-label">Modo de juego</span>
+            <Segmented
+              label="Modo de juego"
+              value={s.gameMode}
+              onChange={(gameMode) => update({ gameMode })}
+              options={[
+                { value: 'completo', label: 'Completo' },
+                { value: 'discreto', label: 'Discreto' },
+                { value: 'estadisticas', label: 'Solo datos' },
+              ]}
+            />
+            <span class="row-hint">
+              {s.gameMode === 'completo'
+                ? 'Avisos, logros y niveles mientras lees.'
+                : s.gameMode === 'discreto'
+                  ? 'Nada interrumpe la lectura: logros y niveles esperan al resumen al cerrar.'
+                  : 'Sin XP, niveles ni logros a la vista: solo tiempo, palabras y rachas.'}
+            </span>
+          </div>
+          <Toggle
+            label="Resumen al cerrar el libro"
+            hint="Tiempo, palabras, avance y logros de la sesión"
+            checked={s.sessionSummary}
+            onChange={(sessionSummary) => update({ sessionSummary })}
+          />
           <Slider label="Meta diaria" value={s.dailyGoalMin} min={5} max={180} step={5} format={(v) => `${v} min`} onInput={(dailyGoalMin) => update({ dailyGoalMin })} />
           <Toggle label="Avisos de progreso" hint="«Leíste 1.000 palabras», «Avanzaste 5 %»…" checked={s.toastsEnabled} onChange={(toastsEnabled) => update({ toastsEnabled })} />
           <div class="row">
@@ -191,8 +239,8 @@ export function SettingsView() {
 
         <Section title="Acerca de">
           <p class="muted small">
-            Lunaria {__APP_VERSION__}. Lector libre inspirado en Moon+ Reader y en el diseño de Substack. Parser EPUB basado en ideas de foliate-js (MIT). Fuentes con licencia SIL OFL vía Fontsource.
-            Iconos de Lucide (ISC).
+            Lunaria {__APP_VERSION__}. Lector libre inspirado en Moon+ Reader y en el diseño de Substack. Parser EPUB basado en ideas de foliate-js (MIT). Fuentes con licencia SIL
+            OFL vía Fontsource. Iconos de Lucide (ISC).
           </p>
         </Section>
       </main>

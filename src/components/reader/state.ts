@@ -17,6 +17,8 @@ export interface ActiveReader {
   /** Navega marcando el salto para que no cuente como lectura */
   jump: (target: Position | { s: number; fragment: string }) => Promise<void>
   scrollScreen: (dir: 1 | -1) => void
+  /** Guarda el sitio actual para poder volver tras un salto */
+  remember: () => void
 }
 
 export const active = signal<ActiveReader | null>(null)
@@ -25,6 +27,10 @@ export const chrome = signal(false)
 export const position = signal<{ s: number; c: number; progress: number; chapterProgress: number }>({ s: 0, c: 0, progress: 0, chapterProgress: 0 })
 export const bookAnnotations = signal<Annotation[]>([])
 export const searchQuery = signal('')
+/** Sitio previo a un salto (índice, búsqueda, enlace, barra): el chip "Volver" y el Atrás llevan aquí */
+export const returnSpot = signal<{ s: number; c: number; label: string } | null>(null)
+/** Marca "aquí ibas" tras pasar pantalla */
+export const hereMark = signal<{ key: number; top: number; left: number } | null>(null)
 
 export function flattenToc(items: TocItem[], out: TocItem[] = []): TocItem[] {
   for (const it of items) {

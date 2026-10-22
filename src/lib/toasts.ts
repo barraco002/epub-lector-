@@ -1,5 +1,7 @@
 import { signal } from '@preact/signals'
 import { uid } from './util'
+import { settings } from './settings'
+import { route } from './router'
 
 export type ToastKind = 'info' | 'progress' | 'achievement' | 'level' | 'goal' | 'pomodoro' | 'error'
 
@@ -25,8 +27,20 @@ const DURATION: Record<ToastKind, number> = {
   error: 5000,
 }
 
+/** Celebraciones de la sesión de lectura en curso: el resumen al cerrar las repasa. */
+export const pendingCelebrations = signal<Toast[]>([])
+
+const CELEBRATIONS: ToastKind[] = ['achievement', 'level', 'goal']
+
 export function toast(t: Omit<Toast, 'id'>) {
   const item = { ...t, id: uid() }
+  const mode = settings.peek().gameMode
+  const reading = route.peek().name === 'reader'
+  // Modo "Solo estadísticas": sin logros ni niveles a la vista
+  if (mode === 'estadisticas' && (item.kind === 'achievement' || item.kind === 'level')) return item.id
+  if (reading && CELEBRATIONS.includes(item.kind)) pendingCelebrations.value = [...pendingCelebrations.peek(), item]
+  // Mientras se lee en modo discreto, nada de avisos de progreso; las celebraciones esperan al resumen
+  if (mode !== 'completo' && reading && (item.kind === 'progress' || CELEBRATIONS.includes(item.kind))) return item.id
   // Como mucho 3 avisos a la vez; los de progreso se sustituyen entre sí
   let list = toasts.value
   if (item.kind === 'progress') list = list.filter((x) => x.kind !== 'progress')

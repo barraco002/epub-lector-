@@ -149,6 +149,7 @@ export function SearchPanel() {
             <button
               type="button"
               onClick={() => {
+                ctx.remember()
                 ctx.session.markJump()
                 void ctx.engine.showHit(h)
                 if (matchMedia('(max-width: 899px)').matches) panel.value = null

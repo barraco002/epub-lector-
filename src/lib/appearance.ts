@@ -1,7 +1,7 @@
 // Aplica tema, filtro de luz azul y tipografía como variables CSS en :root.
 // Todo se recalcula solo cuando cambia un ajuste: no hay temporizadores ni capas extra.
 import { computed, effect, signal } from '@preact/signals'
-import { currentTheme, settings } from './settings'
+import { currentTheme, nightActive, settings } from './settings'
 import { applyColorOverrides, resolveTheme, textureSize, textureUrl } from './themes'
 import { customFonts, fontStack } from './fonts'
 import { intensityToKelvin } from './color'
@@ -26,7 +26,7 @@ let scheduleTimer: ReturnType<typeof setTimeout> | undefined
 effect(() => {
   const s = settings.value
   clearTimeout(scheduleTimer)
-  if (!s.blueSchedule) return
+  if (!s.blueSchedule && s.nightMode !== 'schedule') return
   const now = new Date(clock.value)
   const n = now.getHours() * 60 + now.getMinutes()
   const next = [minutes(s.blueFrom), minutes(s.blueTo)].map((m) => (m - n + 1440) % 1440 || 1440)
@@ -35,6 +35,16 @@ effect(() => {
 })
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) clock.value = Date.now()
+})
+
+const systemDark = signal(typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches)
+if (typeof matchMedia === 'function') matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => (systemDark.value = e.matches))
+
+// Pareja día/noche: manual, siguiendo al sistema o con el mismo horario que el filtro de luz azul
+effect(() => {
+  const s = settings.value
+  nightActive.value =
+    s.nightMode === 'on' || (s.nightMode === 'system' && systemDark.value) || (s.nightMode === 'schedule' && inWindow(new Date(clock.value), s.blueFrom, s.blueTo))
 })
 
 export const blueActive = computed(() => {
@@ -88,7 +98,10 @@ export function startAppearance() {
       '--hyphens': typo.hyphens ? 'auto' : 'manual',
       '--margin': `${typo.margin}px`,
       '--pad-y': `${typo.paddingY ?? 36}px`,
-      '--measure': `${typo.maxWidth}px`,
+      // Ancho en letras (ch de la fuente de lectura), no en píxeles
+      '--measure': `${typo.measure ?? 70}ch`,
+      // Misma altura de la x que Spectral (0,45): cambiar de fuente no cambia el tamaño aparente
+      '--size-adjust': typo.normalizeSize === false ? 'none' : '0.45',
       '--rfont': fontStack(typo.font),
       '--hfont': typo.headingFont === 'same' ? fontStack(typo.font) : fontStack(typo.headingFont),
       '--ui-font': fontStack(uiFont),

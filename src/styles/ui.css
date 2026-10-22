@@ -730,3 +730,147 @@ body:has(.sheet-layer) .toasts {
   background: var(--accent-soft);
   color: var(--text);
 }
+
+/* ——— Resumen de sesión y ficha de libro terminado ——— */
+.summary-book {
+  margin: 0 0 14px;
+  font-family: var(--rfont);
+  font-style: italic;
+  color: var(--muted);
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  margin: 8px 0 14px;
+}
+.summary-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.summary-grid strong {
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+.summary-progress {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.summary-cele {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.summary-cele li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.summary-cele li > span {
+  font-size: 24px;
+}
+.summary-cele li div {
+  display: grid;
+}
+.exlibris {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  padding: 22px 16px;
+  margin-bottom: 12px;
+  border: 2px solid var(--accent);
+  outline: 1px solid var(--accent);
+  outline-offset: -8px;
+  border-radius: 6px;
+}
+.exlibris .eyebrow {
+  color: var(--accent);
+  letter-spacing: 0.3em;
+}
+.exlibris-orn {
+  font-size: 30px;
+  color: var(--accent);
+  line-height: 1;
+}
+.exlibris-title {
+  font-family: var(--rfont);
+  font-size: 24px;
+  line-height: 1.2;
+  margin: 6px 0 2px;
+}
+.center {
+  text-align: center;
+}
+
+/* ——— Mis palabras ——— */
+.vocab-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.vocab-word {
+  font-family: var(--rfont);
+  font-size: 30px;
+  line-height: 1.15;
+  margin-top: 6px;
+}
+.vocab-context {
+  margin: 0;
+  font-family: var(--rfont);
+  font-style: italic;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.vocab-context mark {
+  background: var(--accent-soft);
+  color: var(--text);
+  border-radius: 3px;
+  padding: 0 2px;
+}
+.vocab-meaning {
+  margin: 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.vocab-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.vocab-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+.vocab-list li > div {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+}
+.vocab-list .muted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vocab-box {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}

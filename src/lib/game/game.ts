@@ -226,3 +226,8 @@ export const readingWpm = computed(() => {
   if (t.ms < 10 * 60_000 || t.words < 1000) return 230
   return Math.max(80, Math.min(900, Math.round(t.words / (t.ms / 60_000))))
 })
+
+/** XP extra (p. ej. repasar palabras). */
+export function bonusXp(amount: number) {
+  mutate((p, d) => gainXp(amount, p, d))
+}

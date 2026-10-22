@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'preact/hooks'
-import { BarChart3, BookOpen, Check, Download, Info, LayoutGrid, List, MoreHorizontal, Plus, RotateCcw, Search, Settings as SettingsIcon, Trash2 } from 'lucide-preact'
+import { Award, BarChart3, BookOpen, Check, Download, Info, LayoutGrid, List, MoreHorizontal, Plus, RotateCcw, Search, Settings as SettingsIcon, Trash2 } from 'lucide-preact'
 import type { BookRecord } from '../lib/db'
 import { coverUrl, exportHighlights, importFiles, importing, library, removeBook, setStatus, sortBooks } from '../lib/library'
 import { go } from '../lib/router'
@@ -9,6 +9,7 @@ import { settings } from '../lib/settings'
 import { fmtDuration, fmtNum, hashString } from '../lib/util'
 import { isNative } from '../lib/native'
 import { Bar, Confirm, IconButton, Ring, Segmented, Sheet } from './ui'
+import { FinishedSheet } from './Summary'
 
 type Filter = 'all' | 'reading' | 'new' | 'finished'
 type Sort = 'recent' | 'title' | 'author' | 'progress' | 'added'
@@ -39,6 +40,8 @@ export function openBook(book: BookRecord) {
 
 function BookMenu({ book, onClose }: { book: BookRecord; onClose: () => void }) {
   const [confirm, setConfirm] = useState(false)
+  const [card, setCard] = useState(false)
+  if (card) return <FinishedSheet book={book} onClose={onClose} />
   return (
     <>
       <Sheet title={book.title} onClose={onClose} size="sm">
@@ -62,9 +65,14 @@ function BookMenu({ book, onClose }: { book: BookRecord; onClose: () => void }) 
               <Check size={18} /> Marcar como terminado
             </button>
           ) : (
-            <button type="button" class="menu-item" onClick={() => (setStatus(book.id, 'new'), onClose())}>
-              <RotateCcw size={18} /> Marcar como no leído
-            </button>
+            <>
+              <button type="button" class="menu-item" onClick={() => setCard(true)}>
+                <Award size={18} /> Ficha de libro terminado
+              </button>
+              <button type="button" class="menu-item" onClick={() => (setStatus(book.id, 'new'), onClose())}>
+                <RotateCcw size={18} /> Marcar como no leído
+              </button>
+            </>
           )}
           <button type="button" class="menu-item" onClick={() => exportHighlights(book)}>
             <Download size={18} /> Exportar subrayados (Markdown)
@@ -132,11 +140,13 @@ function TodayCard() {
           {fmtNum(today.value.words)} palabras · 🔥 {streak.value} {streak.value === 1 ? 'día' : 'días'}
         </span>
       </div>
-      <div class="today-level">
-        <span class="level-badge">Nv {lv.level}</span>
-        <span class="muted small">{levelTitle(lv.level)}</span>
-        <Bar value={lv.progress} thin />
-      </div>
+      {settings.value.gameMode !== 'estadisticas' && (
+        <div class="today-level">
+          <span class="level-badge">Nv {lv.level}</span>
+          <span class="muted small">{levelTitle(lv.level)}</span>
+          <Bar value={lv.progress} thin />
+        </div>
+      )}
     </button>
   )
 }
@@ -173,7 +183,14 @@ export function Library() {
     }
   })
   const all = library.value
-  const current = useMemo(() => sortBooks(all.filter((b) => b.status === 'reading'), 'recent')[0], [all])
+  const current = useMemo(
+    () =>
+      sortBooks(
+        all.filter((b) => b.status === 'reading'),
+        'recent',
+      )[0],
+    [all],
+  )
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -248,7 +265,10 @@ export function Library() {
           <div class="empty">
             <div class="empty-moon" aria-hidden="true" />
             <h1>Tu biblioteca está esperando</h1>
-            <p class="muted">Importa tus libros EPUB{isNative() ? '' : ' o arrástralos a esta ventana'}. Se guardan solo en este dispositivo.</p>
+            <p class="muted">
+              Importa tus libros EPUB
+              {isNative() ? '' : ' o arrástralos a esta ventana'}. Se guardan solo en este dispositivo.
+            </p>
             <button type="button" class="btn btn-primary" onClick={pick}>
               <Plus size={18} /> Importar EPUB
             </button>
@@ -257,7 +277,9 @@ export function Library() {
           <section class="shelf">
             <div class="shelf-head">
               <h2>Biblioteca</h2>
-              <span class="muted small">{all.length} {all.length === 1 ? 'libro' : 'libros'}</span>
+              <span class="muted small">
+                {all.length} {all.length === 1 ? 'libro' : 'libros'}
+              </span>
             </div>
             <div class="shelf-tools">
               <Segmented<Filter>

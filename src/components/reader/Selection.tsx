@@ -1,6 +1,6 @@
 import type { ComponentChildren } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
-import { BookA, Copy, Languages, Search, StickyNote, Trash2, ExternalLink, Volume2 } from 'lucide-preact'
+import { BookA, BookmarkPlus, Check, Copy, Languages, Search, StickyNote, Trash2, ExternalLink, Volume2 } from 'lucide-preact'
 import { active, bookAnnotations, openPanel, searchQuery } from './state'
 import { annotations as annStore, type Annotation, type HighlightColor } from '../../lib/db'
 import { cleanWord, define, googleTranslateUrl, raeUrl, translate, type Definition } from '../../lib/dictionary'
@@ -10,9 +10,16 @@ import { info } from '../../lib/toasts'
 import { debounce, uid } from '../../lib/util'
 import { Sheet, useCloser } from '../ui'
 import { isNative, translateWithApp } from '../../lib/native'
+import { isSaved, saveWord, sentenceAround } from '../../lib/vocab'
 
 const COLORS: HighlightColor[] = ['yellow', 'green', 'blue', 'pink', 'purple']
-const COLOR_NAMES: Record<HighlightColor, string> = { yellow: 'amarillo', green: 'verde', blue: 'azul', pink: 'rosa', purple: 'morado' }
+const COLOR_NAMES: Record<HighlightColor, string> = {
+  yellow: 'amarillo',
+  green: 'verde',
+  blue: 'azul',
+  pink: 'rosa',
+  purple: 'morado',
+}
 
 interface Sel {
   s: number
@@ -34,7 +41,18 @@ function menuStyle(rect: DOMRect) {
 async function saveHighlight(sel: Sel, color: HighlightColor, note?: string) {
   const ctx = active.value
   if (!ctx) return
-  const a: Annotation = { id: uid(), bookId: ctx.record.id, kind: 'highlight', s: sel.s, start: sel.start, end: sel.end, text: sel.text, color, note, createdAt: Date.now() }
+  const a: Annotation = {
+    id: uid(),
+    bookId: ctx.record.id,
+    kind: 'highlight',
+    s: sel.s,
+    start: sel.start,
+    end: sel.end,
+    text: sel.text,
+    color,
+    note,
+    createdAt: Date.now(),
+  }
   await annStore.put(a)
   bookAnnotations.value = [...bookAnnotations.value, a]
   ctx.engine.setAnnotations(bookAnnotations.value)
@@ -55,7 +73,7 @@ async function removeAnnotation(a: Annotation) {
   active.value?.engine.setAnnotations(bookAnnotations.value)
 }
 
-function DictionarySheet({ text, mode, onClose }: { text: string; mode: 'define' | 'translate'; onClose: () => void }) {
+function DictionarySheet({ text, mode, context, onClose }: { text: string; mode: 'define' | 'translate'; context?: string; onClose: () => void }) {
   const ctx = active.value
   const lang = ctx?.book.metadata.language || 'en'
   const to = settings.value.translateTo
@@ -70,6 +88,21 @@ function DictionarySheet({ text, mode, onClose }: { text: string; mode: 'define'
   }, [text, mode])
   const word = cleanWord(text)
   const offline = !navigator.onLine
+  const [saved, setSaved] = useState(() => isSaved(mode === 'define' ? word : text))
+  const save = async () => {
+    const first = def?.senses[0]?.definitions[0]?.text
+    const meaning = [tr, first].filter(Boolean).join(' — ')
+    await saveWord({
+      word: mode === 'define' ? word : text.trim(),
+      lang,
+      meaning,
+      context,
+      bookId: ctx?.record.id,
+      bookTitle: ctx?.record.title,
+    })
+    setSaved(true)
+    info('Guardada en Mis palabras', 'Repásala en Progreso')
+  }
   return (
     <Sheet title={mode === 'define' ? word : 'Traducción'} onClose={onClose} size="sm">
       {offline && <p class="muted">Sin conexión: el diccionario y la traducción necesitan internet.</p>}
@@ -114,6 +147,9 @@ function DictionarySheet({ text, mode, onClose }: { text: string; mode: 'define'
         {tr && <p class="dict-tr">{tr}</p>}
       </div>
       <div class="btn-row">
+        <button type="button" class="btn btn-sm" disabled={saved || (def === undefined && tr === undefined && !offline)} onClick={() => void save()}>
+          {saved ? <Check size={14} /> : <BookmarkPlus size={14} />} {saved ? 'En Mis palabras' : 'Guardar palabra'}
+        </button>
         {isNative() && (
           <button type="button" class="btn btn-sm btn-primary" onClick={() => void translateWithApp(text)}>
             <Languages size={14} /> Traducir con una app
@@ -173,7 +209,11 @@ function FloatingMenu({ rect, children, onClose }: { rect: DOMRect; children: Co
 export function SelectionLayer() {
   const [sel, setSel] = useState<Sel | null>(null)
   const [hl, setHl] = useState<{ a: Annotation; rect: DOMRect } | null>(null)
-  const [dict, setDict] = useState<{ text: string; mode: 'define' | 'translate' } | null>(null)
+  const [dict, setDict] = useState<{
+    text: string
+    mode: 'define' | 'translate'
+    context?: string
+  } | null>(null)
   const [note, setNote] = useState<{ sel?: Sel; a?: Annotation } | null>(null)
 
   useEffect(() => {
@@ -207,6 +247,11 @@ export function SelectionLayer() {
   }, [])
 
   const words = sel ? sel.text.split(/\s+/).length : 0
+  const lookup = (sel: Sel, mode: 'define' | 'translate') => {
+    const ctx = active.value
+    const context = ctx && words <= 4 ? sentenceAround(ctx.engine.chapterText(sel.s), sel.start, sel.end) : undefined
+    setDict({ text: sel.text, mode, context })
+  }
   return (
     <>
       {sel && !dict && !note && (
@@ -231,11 +276,11 @@ export function SelectionLayer() {
               <Copy size={16} /> Copiar
             </button>
             {words <= 4 && (
-              <button type="button" onClick={() => setDict({ text: sel.text, mode: 'define' })}>
+              <button type="button" onClick={() => lookup(sel, 'define')}>
                 <BookA size={16} /> Definir
               </button>
             )}
-            <button type="button" onClick={() => setDict({ text: sel.text, mode: 'translate' })}>
+            <button type="button" onClick={() => lookup(sel, 'translate')}>
               <Languages size={16} /> Traducir
             </button>
             <button
@@ -256,7 +301,12 @@ export function SelectionLayer() {
         <FloatingMenu rect={hl.rect} onClose={() => setHl(null)}>
           <div class="sel-colors">
             {COLORS.map((c) => (
-              <button type="button" class={`hl-dot hl-${c} ${hl.a.color === c ? 'is-on' : ''}`} aria-label={`Cambiar a ${COLOR_NAMES[c]}`} onClick={() => (void updateAnnotation(hl.a, { color: c }), setHl(null))} />
+              <button
+                type="button"
+                class={`hl-dot hl-${c} ${hl.a.color === c ? 'is-on' : ''}`}
+                aria-label={`Cambiar a ${COLOR_NAMES[c]}`}
+                onClick={() => (void updateAnnotation(hl.a, { color: c }), setHl(null))}
+              />
             ))}
           </div>
           {hl.a.note && <p class="sel-note">{hl.a.note}</p>}
@@ -277,6 +327,7 @@ export function SelectionLayer() {
         <DictionarySheet
           text={dict.text}
           mode={dict.mode}
+          context={dict.context}
           onClose={() => {
             setDict(null)
             setSel(null)

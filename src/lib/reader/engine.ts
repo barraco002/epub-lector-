@@ -440,6 +440,22 @@ export class ReaderEngine {
     return this.total
   }
 
+  /** Borde superior del renglón que pasa por la coordenada `y` (null si ahí no hay texto). */
+  lineTopAt(y: number): { top: number; left: number } | null {
+    const body = this.root.getBoundingClientRect()
+    const caret = caretFromPoint(body.left + body.width * 0.3, y)
+    if (!caret || caret.node.nodeType !== Node.TEXT_NODE || !this.root.contains(caret.node)) return null
+    const text = caret.node as Text
+    const r = document.createRange()
+    const at = Math.min(caret.offset, Math.max(0, text.data.length - 1))
+    r.setStart(text, at)
+    r.setEnd(text, Math.min(at + 1, text.data.length))
+    const rect = r.getClientRects()[0]
+    if (!rect) return null
+    const lineStart = text.parentElement?.getBoundingClientRect().left ?? rect.left
+    return { top: rect.top, left: Math.max(body.left, Math.min(lineStart, rect.left)) }
+  }
+
   // ——— Enlaces, notas e imágenes ———
 
   private onClick = (e: MouseEvent) => {

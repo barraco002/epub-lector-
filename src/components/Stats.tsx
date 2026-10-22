@@ -4,6 +4,7 @@ import { go } from '../lib/router'
 import { goalMs, goalProgress, history, level, profile, readingWpm, streak, today } from '../lib/game/game'
 import { ACHIEVEMENTS, type AchievementCtx } from '../lib/game/achievements'
 import { levelTitle } from '../lib/game/levels'
+import { VocabSection } from './Vocab'
 import { library } from '../lib/library'
 import { settings, update } from '../lib/settings'
 import { addDays, dayKey, fmtDuration, fmtNum } from '../lib/util'
@@ -11,10 +12,21 @@ import { Bar, IconButton, Ring, Slider } from './ui'
 
 const WEEKS = 18
 const DOW = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
-const fmtDay = (key: string) => new Date(key + 'T12:00').toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' })
+const fmtDay = (key: string) =>
+  new Date(key + 'T12:00').toLocaleDateString('es', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  })
 
 /** Escala secuencial de un solo tono: del fondo al acento del tema (5 pasos). */
-const LEVEL_FILL = ['var(--surface-3)', 'color-mix(in srgb, var(--accent) 30%, var(--surface))', 'color-mix(in srgb, var(--accent) 55%, var(--surface))', 'color-mix(in srgb, var(--accent) 80%, var(--surface))', 'var(--accent)']
+const LEVEL_FILL = [
+  'var(--surface-3)',
+  'color-mix(in srgb, var(--accent) 30%, var(--surface))',
+  'color-mix(in srgb, var(--accent) 55%, var(--surface))',
+  'color-mix(in srgb, var(--accent) 80%, var(--surface))',
+  'var(--accent)',
+]
 
 function levelOf(ms: number, goal: number) {
   if (ms <= 0) return 0
@@ -159,8 +171,14 @@ function Tile({ label, value, sub }: { label: string; value: string; sub?: strin
 export function Stats() {
   const p = profile.value
   const lv = level.value
+  const game = settings.value.gameMode !== 'estadisticas'
   const [readout, setReadout] = useState<string>('Toca un día para ver el detalle')
-  const ctx: AchievementCtx = { p, today: today.value, weekendBoth: false, libraryCount: library.value.length }
+  const ctx: AchievementCtx = {
+    p,
+    today: today.value,
+    weekendBoth: false,
+    libraryCount: library.value.length,
+  }
   const unlocked = ACHIEVEMENTS.filter((a) => p.achievements[a.id])
   const weekMs = useMemo(() => {
     let ms = 0
@@ -180,19 +198,21 @@ export function Stats() {
         <span />
       </header>
       <main class="page-main">
-        <section class="level-card card">
-          <div class="level-num">
-            <span class="eyebrow">Nivel</span>
-            <strong>{lv.level}</strong>
-          </div>
-          <div class="level-info">
-            <h2>{levelTitle(lv.level)}</h2>
-            <Bar value={lv.progress} />
-            <span class="muted small">
-              {fmtNum(p.xp - lv.base)} / {fmtNum(lv.next - lv.base)} XP para el nivel {lv.level + 1} · {fmtNum(p.xp)} XP en total
-            </span>
-          </div>
-        </section>
+        {game && (
+          <section class="level-card card">
+            <div class="level-num">
+              <span class="eyebrow">Nivel</span>
+              <strong>{lv.level}</strong>
+            </div>
+            <div class="level-info">
+              <h2>{levelTitle(lv.level)}</h2>
+              <Bar value={lv.progress} />
+              <span class="muted small">
+                {fmtNum(p.xp - lv.base)} / {fmtNum(lv.next - lv.base)} XP para el nivel {lv.level + 1} · {fmtNum(p.xp)} XP en total
+              </span>
+            </div>
+          </section>
+        )}
 
         <section class="tiles">
           <div class="tile card tile-goal">
@@ -213,6 +233,8 @@ export function Stats() {
           <Tile label="Velocidad" value={`${readingWpm.value} ppm`} sub="palabras por minuto" />
         </section>
 
+        <VocabSection />
+
         <section class="card chart-card">
           <div class="chart-head">
             <h2>Últimas {WEEKS} semanas</h2>
@@ -229,36 +251,50 @@ export function Stats() {
             <span class="muted small">Meta: {settings.value.dailyGoalMin} min</span>
           </div>
           <DailyBars onPick={setReadout} />
-          <Slider label="Meta diaria" value={settings.value.dailyGoalMin} min={5} max={180} step={5} format={(v) => `${v} min`} onInput={(dailyGoalMin) => update({ dailyGoalMin })} />
+          <Slider
+            label="Meta diaria"
+            value={settings.value.dailyGoalMin}
+            min={5}
+            max={180}
+            step={5}
+            format={(v) => `${v} min`}
+            onInput={(dailyGoalMin) => update({ dailyGoalMin })}
+          />
         </section>
 
-        <section class="achievements">
-          <div class="shelf-head">
-            <h2>Logros</h2>
-            <span class="muted small">
-              {unlocked.length} de {ACHIEVEMENTS.length}
-            </span>
-          </div>
-          <div class="ach-grid">
-            {ACHIEVEMENTS.map((a) => {
-              const got = p.achievements[a.id]
-              const prog = got ? 1 : (a.progress?.(ctx) ?? 0)
-              return (
-                <div class={`ach card ${got ? 'is-got' : ''}`} key={a.id}>
-                  <span class="ach-icon" aria-hidden="true">
-                    {got ? a.icon : <Lock size={18} />}
-                  </span>
-                  <div class="ach-text">
-                    <strong>{a.name}</strong>
-                    <span class="muted small">{a.desc}</span>
-                    {!got && a.progress && <Bar value={prog} thin />}
-                    {got && <span class="muted small">+{a.xp} XP · {new Date(got).toLocaleDateString('es')}</span>}
+        {game && (
+          <section class="achievements">
+            <div class="shelf-head">
+              <h2>Logros</h2>
+              <span class="muted small">
+                {unlocked.length} de {ACHIEVEMENTS.length}
+              </span>
+            </div>
+            <div class="ach-grid">
+              {ACHIEVEMENTS.map((a) => {
+                const got = p.achievements[a.id]
+                const prog = got ? 1 : (a.progress?.(ctx) ?? 0)
+                return (
+                  <div class={`ach card ${got ? 'is-got' : ''}`} key={a.id}>
+                    <span class="ach-icon" aria-hidden="true">
+                      {got ? a.icon : <Lock size={18} />}
+                    </span>
+                    <div class="ach-text">
+                      <strong>{a.name}</strong>
+                      <span class="muted small">{a.desc}</span>
+                      {!got && a.progress && <Bar value={prog} thin />}
+                      {got && (
+                        <span class="muted small">
+                          +{a.xp} XP · {new Date(got).toLocaleDateString('es')}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
-        </section>
+                )
+              })}
+            </div>
+          </section>
+        )}
       </main>
     </div>
   )

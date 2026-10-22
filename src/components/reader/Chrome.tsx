@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'preact/hooks'
-import { ArrowLeft, Bookmark, BookmarkCheck, Headphones, List, Maximize, Minimize, Minus, Moon, Palette, Pause, Play, Plus, Search, Sun, Timer, Type, X } from 'lucide-preact'
-import { active, bookAnnotations, chrome, openPanel, panel, position } from './state'
-import { blueActive } from '../../lib/appearance'
-import { settings, update } from '../../lib/settings'
-import { go } from '../../lib/router'
+import { ArrowLeft, Bookmark, BookmarkCheck, Headphones, List, Maximize, Minimize, Minus, Moon, Palette, Pause, Play, Plus, Search, Sun, Timer, Type, Undo2, X } from 'lucide-preact'
+import { active, bookAnnotations, chrome, hereMark, openPanel, panel, position, returnSpot } from './state'
+import { nightActive, settings, update } from '../../lib/settings'
+import { go, pushCloser } from '../../lib/router'
 import { goalProgress, readingWpm, today } from '../../lib/game/game'
 import { playing as soundPlaying } from '../../lib/audio/ambient'
 import { pomo, remainingMs } from '../../lib/pomodoro'
@@ -134,6 +133,7 @@ function ProgressSlider() {
         onChange={(e) => {
           const v = +(e.target as HTMLInputElement).value / 1000
           setDrag(null)
+          ctx.remember()
           ctx.session.markJump()
           void ctx.engine.goToProgress(v)
         }}
@@ -186,11 +186,11 @@ export function BottomBar() {
             </button>
             <button
               type="button"
-              class={`r-action ${blueActive.value ? 'is-active' : ''}`}
-              onClick={() => update({ blueLight: !settings.value.blueLight, blueSchedule: false })}
+              class={`r-action ${nightActive.value ? 'is-active' : ''}`}
+              onClick={() => update({ nightMode: nightActive.value ? 'off' : 'on' })}
             >
-              {blueActive.value ? <Moon size={20} /> : <Sun size={20} />}
-              <span>Luz azul</span>
+              {nightActive.value ? <Moon size={20} /> : <Sun size={20} />}
+              <span>{nightActive.value ? 'Noche' : 'Día'}</span>
             </button>
             <button
               type="button"
@@ -299,4 +299,45 @@ export function AutoPill() {
       </IconButton>
     </div>
   )
+}
+
+/** "Volver a donde estabas" tras un salto. También responde al Atrás de Android y a Escape. */
+export function ReturnChip() {
+  const spot = returnSpot.value
+  const ctx = active.value
+  useEffect(() => {
+    if (!spot) return
+    const off = pushCloser(goBack)
+    const t = setTimeout(() => (returnSpot.value = null), 20_000)
+    return () => {
+      off()
+      clearTimeout(t)
+    }
+  }, [spot])
+  function goBack() {
+    const s = returnSpot.peek()
+    const c = active.peek()
+    if (!s || !c) return
+    returnSpot.value = null
+    c.session.markJump()
+    void c.engine.goTo({ s: s.s, c: s.c })
+  }
+  if (!spot || !ctx || ctx.auto.active) return null
+  return (
+    <div class="return-chip">
+      <button type="button" class="return-go" onClick={goBack}>
+        <Undo2 size={16} /> Volver a <em>{spot.label}</em>
+      </button>
+      <button type="button" class="return-x" aria-label="Descartar" onClick={() => (returnSpot.value = null)}>
+        <X size={14} />
+      </button>
+    </div>
+  )
+}
+
+/** Marca breve junto al renglón donde ibas tras pasar pantalla. */
+export function HereMark() {
+  const m = hereMark.value
+  if (!m) return null
+  return <div class="here-mark" key={m.key} style={{ top: `${m.top}px`, left: `${Math.max(2, m.left - 12)}px` }} aria-hidden="true" />
 }

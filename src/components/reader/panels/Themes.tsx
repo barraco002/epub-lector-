@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks'
-import { Check, ChevronLeft, Copy, Download, Image as ImageIcon, Pencil, Trash2, Upload } from 'lucide-preact'
+import { Check, ChevronLeft, Copy, Download, Image as ImageIcon, Moon, Pencil, Sun, Trash2, Upload } from 'lucide-preact'
 import { clearBgImage, setBgImage } from '../../../lib/background'
-import { allThemes, currentTheme, customThemes, saveCustomThemes, settings, update } from '../../../lib/settings'
+import { allThemes, chooseTheme, currentTheme, customThemes, nightActive, saveCustomThemes, settings, update } from '../../../lib/settings'
 import { newCustomTheme, type Texture, type Theme } from '../../../lib/themes'
 import { contrast, isDark } from '../../../lib/color'
 import { track } from '../../../lib/game/game'
@@ -60,7 +60,7 @@ function ThemeEditor({ theme, onBack }: { theme: Theme; onBack: () => void }) {
   }
   const remove = () => {
     if (!confirm(`¿Eliminar el tema «${theme.name}»?`)) return
-    update({ themeId: 'substack' })
+    chooseTheme(nightActive.value ? 'substack-noche' : 'substack')
     void saveCustomThemes(customThemes.value.filter((t) => t.id !== theme.id))
     onBack()
   }
@@ -138,7 +138,7 @@ function importTheme() {
       const base = { surface: data.bg!, muted: data.text!, border: data.text!, ...data } as Theme
       const t = newCustomTheme(base, data.name ?? 'Tema importado')
       await saveCustomThemes([...customThemes.value, t])
-      update({ themeId: t.id })
+      chooseTheme(t.id)
       info('Tema importado', t.name)
     } catch (e) {
       error('No se pudo importar el tema', e instanceof Error ? e.message : undefined)
@@ -173,7 +173,7 @@ export function ThemePanel() {
   const customize = () => {
     const t = newCustomTheme(cur, cur.custom ? `${cur.name} (copia)` : `${cur.name} personalizado`)
     void saveCustomThemes([...customThemes.value, t]).then(() => {
-      update({ themeId: t.id })
+      chooseTheme(t.id)
       track('theme')
       setEditing(t.id)
     })
@@ -193,6 +193,37 @@ export function ThemePanel() {
           <Upload size={15} /> Importar
         </button>
       </div>
+      <Section title="Día y noche">
+        <div class="day-night">
+          <button type="button" class={`dn-card ${!nightActive.value ? 'is-on' : ''}`} onClick={() => update({ nightMode: 'off' })}>
+            <Sun size={16} /> Día · {allThemes.value.find((x) => x.id === s.themeId)?.name ?? s.themeId}
+          </button>
+          <button type="button" class={`dn-card ${nightActive.value ? 'is-on' : ''}`} onClick={() => update({ nightMode: 'on' })}>
+            <Moon size={16} /> Noche · {allThemes.value.find((x) => x.id === s.nightThemeId)?.name ?? s.nightThemeId}
+          </button>
+        </div>
+        <Segmented
+          label="Cambio automático"
+          value={s.nightMode === 'system' || s.nightMode === 'schedule' ? s.nightMode : 'manual'}
+          onChange={(v) => update({ nightMode: v === 'manual' ? (nightActive.value ? 'on' : 'off') : v })}
+          options={[
+            { value: 'manual', label: 'Manual' },
+            { value: 'system', label: 'Como el sistema' },
+            { value: 'schedule', label: 'Por horario' },
+          ]}
+        />
+        {s.nightMode === 'schedule' && (
+          <div class="row time-row">
+            <label>
+              Noche desde <input type="time" value={s.blueFrom} onChange={(e) => update({ blueFrom: (e.target as HTMLInputElement).value })} />
+            </label>
+            <label>
+              hasta <input type="time" value={s.blueTo} onChange={(e) => update({ blueTo: (e.target as HTMLInputElement).value })} />
+            </label>
+          </div>
+        )}
+        <p class="muted small">Tocar un tema de abajo cambia el de {nightActive.value ? 'noche' : 'día'}.</p>
+      </Section>
       {[
         ['Claros', light],
         ['Oscuros', dark],
@@ -200,7 +231,7 @@ export function ThemePanel() {
         <Section key={title as string} title={title as string}>
           <div class="swatches">
             {(list as Theme[]).map((t) => (
-              <Swatch key={t.id} theme={t} on={t.id === cur.id} onClick={() => update({ themeId: t.id })} />
+              <Swatch key={t.id} theme={t} on={t.id === cur.id} onClick={() => chooseTheme(t.id)} />
             ))}
           </div>
         </Section>
