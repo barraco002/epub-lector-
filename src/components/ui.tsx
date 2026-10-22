@@ -2,6 +2,7 @@ import type { ComponentChildren, JSX } from 'preact'
 import { useEffect, useRef } from 'preact/hooks'
 import { X } from 'lucide-preact'
 import { pushCloser } from '../lib/router'
+import { t } from '../lib/i18n'
 
 /** Registra `onClose` en la pila de Atrás/Escape mientras el componente está montado. */
 export function useCloser(onClose: () => void) {
@@ -52,7 +53,7 @@ export function Slider({ label, value, min, max, step, onInput, format, hint }: 
         <span class="slider-value">{format ? format(value) : value}</span>
       </div>
       <div class="slider-body">
-        <button type="button" class="step-btn" aria-label={`Reducir ${label}`} onClick={() => onInput(+clampStep(value - step).toFixed(4))}>
+        <button type="button" class="step-btn" aria-label={t('Reducir {label}', { label })} onClick={() => onInput(+clampStep(value - step).toFixed(4))}>
           −
         </button>
         <input
@@ -65,7 +66,7 @@ export function Slider({ label, value, min, max, step, onInput, format, hint }: 
           style={{ '--pct': `${pct}%` }}
           onInput={(e) => onInput(+(e.target as HTMLInputElement).value)}
         />
-        <button type="button" class="step-btn" aria-label={`Aumentar ${label}`} onClick={() => onInput(+clampStep(value + step).toFixed(4))}>
+        <button type="button" class="step-btn" aria-label={t('Aumentar {label}', { label })} onClick={() => onInput(+clampStep(value + step).toFixed(4))}>
           +
         </button>
       </div>
@@ -112,7 +113,7 @@ export function Sheet({ title, onClose, children, size = 'md', scrim = true }: {
         <div class="sheet-grip" aria-hidden="true" />
         <header class="sheet-head">
           <h2>{title}</h2>
-          <IconButton label="Cerrar" onClick={onClose}>
+          <IconButton label={t('Cerrar')} onClick={onClose}>
             <X size={20} />
           </IconButton>
         </header>
@@ -166,7 +167,7 @@ export function Confirm({ title, body, confirmLabel, danger, onConfirm, onClose 
         <div class="dialog-body">{body}</div>
         <div class="dialog-actions">
           <button type="button" class="btn" onClick={onClose}>
-            Cancelar
+            {t('Cancelar')}
           </button>
           <button
             type="button"

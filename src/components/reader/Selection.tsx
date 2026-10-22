@@ -11,6 +11,7 @@ import { debounce, uid } from '../../lib/util'
 import { Sheet, useCloser } from '../ui'
 import { isNative, translateWithApp } from '../../lib/native'
 import { isSaved, saveWord, sentenceAround } from '../../lib/vocab'
+import { t } from '../../lib/i18n'
 
 const COLORS: HighlightColor[] = ['yellow', 'green', 'blue', 'pink', 'purple']
 const COLOR_NAMES: Record<HighlightColor, string> = {
@@ -101,22 +102,22 @@ function DictionarySheet({ text, mode, context, onClose }: { text: string; mode:
       bookTitle: ctx?.record.title,
     })
     setSaved(true)
-    info('Guardada en Mis palabras', 'Repásala en Progreso')
+    info(t('Guardada en Mis palabras'), t('Repásala en Progreso'))
   }
   return (
-    <Sheet title={mode === 'define' ? word : 'Traducción'} onClose={onClose} size="sm">
-      {offline && <p class="muted">Sin conexión: el diccionario y la traducción necesitan internet.</p>}
+    <Sheet title={mode === 'define' ? word : t('Traducción')} onClose={onClose} size="sm">
+      {offline && <p class="muted">{t('Sin conexión: el diccionario y la traducción necesitan internet.')}</p>}
       {mode === 'define' && (
         <div class="dict">
-          {def === undefined && !offline && <p class="muted">Buscando definición…</p>}
-          {def === null && <p class="muted">No encontré una definición para «{word}».</p>}
+          {def === undefined && !offline && <p class="muted">{t('Buscando definición…')}</p>}
+          {def === null && <p class="muted">{t('No encontré una definición para «{word}».', { word })}</p>}
           {def && (
             <>
               {(def.phonetic || def.audio) && (
                 <p class="dict-phonetic">
                   {def.phonetic}
                   {def.audio && (
-                    <button type="button" class="icon-btn" aria-label="Escuchar pronunciación" onClick={() => void new Audio(def.audio).play().catch(() => {})}>
+                    <button type="button" class="icon-btn" aria-label={t('Escuchar pronunciación')} onClick={() => void new Audio(def.audio).play().catch(() => {})}>
                       <Volume2 size={16} />
                     </button>
                   )}
@@ -129,30 +130,30 @@ function DictionarySheet({ text, mode, context, onClose }: { text: string; mode:
                     {s.definitions.map((d, j) => (
                       <li key={j}>
                         {d.text}
-                        {d.example && <span class="dict-example">«{d.example}»</span>}
+                        {d.example && <span class="dict-example">{t('«{example}»', { example: d.example })}</span>}
                       </li>
                     ))}
                   </ol>
                 </div>
               ))}
-              <p class="muted small">Fuente: {def.source}</p>
+              <p class="muted small">{t('Fuente: {source}', { source: def.source })}</p>
             </>
           )}
         </div>
       )}
       <div class="dict-translation">
-        <span class="eyebrow">Traducción ({to})</span>
-        {tr === undefined && !offline && <p class="muted">Traduciendo…</p>}
-        {tr === null && <p class="muted">No se pudo traducir ahora.</p>}
+        <span class="eyebrow">{t('Traducción ({to})', { to })}</span>
+        {tr === undefined && !offline && <p class="muted">{t('Traduciendo…')}</p>}
+        {tr === null && <p class="muted">{t('No se pudo traducir ahora.')}</p>}
         {tr && <p class="dict-tr">{tr}</p>}
       </div>
       <div class="btn-row">
         <button type="button" class="btn btn-sm" disabled={saved || (def === undefined && tr === undefined && !offline)} onClick={() => void save()}>
-          {saved ? <Check size={14} /> : <BookmarkPlus size={14} />} {saved ? 'En Mis palabras' : 'Guardar palabra'}
+          {saved ? <Check size={14} /> : <BookmarkPlus size={14} />} {saved ? t('En Mis palabras') : t('Guardar palabra')}
         </button>
         {isNative() && (
           <button type="button" class="btn btn-sm btn-primary" onClick={() => void translateWithApp(text)}>
-            <Languages size={14} /> Traducir con una app
+            <Languages size={14} /> {t('Traducir con una app')}
           </button>
         )}
         <a class="btn btn-sm" href={googleTranslateUrl(text, to)} target="_blank" rel="noopener noreferrer">
@@ -176,11 +177,11 @@ function DictionarySheet({ text, mode, context, onClose }: { text: string; mode:
 function NoteSheet({ initial, onSave, onClose }: { initial: string; onSave: (note: string) => void; onClose: () => void }) {
   const [note, setNote] = useState(initial)
   return (
-    <Sheet title="Nota" onClose={onClose} size="sm">
-      <textarea class="note-input" rows={6} value={note} placeholder="Escribe tu nota…" onInput={(e) => setNote((e.target as HTMLTextAreaElement).value)} autoFocus />
+    <Sheet title={t('Nota')} onClose={onClose} size="sm">
+      <textarea class="note-input" rows={6} value={note} placeholder={t('Escribe tu nota…')} onInput={(e) => setNote((e.target as HTMLTextAreaElement).value)} autoFocus />
       <div class="btn-row">
         <button type="button" class="btn" onClick={onClose}>
-          Cancelar
+          {t('Cancelar')}
         </button>
         <button
           type="button"
@@ -190,7 +191,7 @@ function NoteSheet({ initial, onSave, onClose }: { initial: string; onSave: (not
             onClose()
           }}
         >
-          Guardar
+          {t('Guardar')}
         </button>
       </div>
     </Sheet>
@@ -258,30 +259,30 @@ export function SelectionLayer() {
         <FloatingMenu rect={sel.rect} onClose={() => (getSelection()?.removeAllRanges(), setSel(null))}>
           <div class="sel-colors">
             {COLORS.map((c) => (
-              <button type="button" class={`hl-dot hl-${c}`} aria-label={`Subrayar en ${COLOR_NAMES[c]}`} onClick={() => (void saveHighlight(sel, c), setSel(null))} />
+              <button type="button" class={`hl-dot hl-${c}`} aria-label={t('Subrayar en {color}', { color: t(COLOR_NAMES[c]) })} onClick={() => (void saveHighlight(sel, c), setSel(null))} />
             ))}
           </div>
           <div class="sel-actions">
             <button type="button" onClick={() => setNote({ sel })}>
-              <StickyNote size={16} /> Nota
+              <StickyNote size={16} /> {t('Nota')}
             </button>
             <button
               type="button"
               onClick={() => {
-                void navigator.clipboard?.writeText(sel.text).then(() => info('Copiado'))
+                void navigator.clipboard?.writeText(sel.text).then(() => info(t('Copiado')))
                 getSelection()?.removeAllRanges()
                 setSel(null)
               }}
             >
-              <Copy size={16} /> Copiar
+              <Copy size={16} /> {t('Copiar')}
             </button>
             {words <= 4 && (
               <button type="button" onClick={() => lookup(sel, 'define')}>
-                <BookA size={16} /> Definir
+                <BookA size={16} /> {t('Definir')}
               </button>
             )}
             <button type="button" onClick={() => lookup(sel, 'translate')}>
-              <Languages size={16} /> Traducir
+              <Languages size={16} /> {t('Traducir')}
             </button>
             <button
               type="button"
@@ -292,7 +293,7 @@ export function SelectionLayer() {
                 openPanel('search')
               }}
             >
-              <Search size={16} /> Buscar
+              <Search size={16} /> {t('Buscar')}
             </button>
           </div>
         </FloatingMenu>
@@ -304,7 +305,7 @@ export function SelectionLayer() {
               <button
                 type="button"
                 class={`hl-dot hl-${c} ${hl.a.color === c ? 'is-on' : ''}`}
-                aria-label={`Cambiar a ${COLOR_NAMES[c]}`}
+                aria-label={t('Cambiar a {color}', { color: t(COLOR_NAMES[c]) })}
                 onClick={() => (void updateAnnotation(hl.a, { color: c }), setHl(null))}
               />
             ))}
@@ -312,13 +313,13 @@ export function SelectionLayer() {
           {hl.a.note && <p class="sel-note">{hl.a.note}</p>}
           <div class="sel-actions">
             <button type="button" onClick={() => setNote({ a: hl.a })}>
-              <StickyNote size={16} /> {hl.a.note ? 'Editar nota' : 'Nota'}
+              <StickyNote size={16} /> {hl.a.note ? t('Editar nota') : t('Nota')}
             </button>
-            <button type="button" onClick={() => (void navigator.clipboard?.writeText(hl.a.text).then(() => info('Copiado')), setHl(null))}>
-              <Copy size={16} /> Copiar
+            <button type="button" onClick={() => (void navigator.clipboard?.writeText(hl.a.text).then(() => info(t('Copiado'))), setHl(null))}>
+              <Copy size={16} /> {t('Copiar')}
             </button>
             <button type="button" class="danger" onClick={() => (void removeAnnotation(hl.a), setHl(null))}>
-              <Trash2 size={16} /> Quitar
+              <Trash2 size={16} /> {t('Quitar')}
             </button>
           </div>
         </FloatingMenu>

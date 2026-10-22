@@ -18,6 +18,7 @@ import { Stats } from './components/Stats'
 import { SettingsView } from './components/Settings'
 import { Toasts } from './components/Toasts'
 import { SessionSummarySheet } from './components/Summary'
+import { t } from './lib/i18n'
 
 function DropZone() {
   const [over, setOver] = useState(false)
@@ -58,7 +59,7 @@ function DropZone() {
   }, [])
   return over ? (
     <div class="drop-zone">
-      <div>Suelta aquí tus EPUB</div>
+      <div>{t('Suelta aquí tus EPUB')}</div>
     </div>
   ) : null
 }
@@ -74,7 +75,7 @@ export function App() {
       }
       void requestPersistence()
       void initAndroid()
-      void onBackButton(back, () => info('App desfijada', 'Pulsa Atrás otra vez para salir'))
+      void onBackButton(back, () => info(t('App desfijada'), t('Pulsa Atrás otra vez para salir')))
       void initNativeFileOpen(async (file) => {
         const book = await importFiles([file])
         if (book) go({ name: 'reader', bookId: book.id })

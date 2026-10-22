@@ -5,6 +5,8 @@ import { annotations as annStore, type Annotation } from '../../../lib/db'
 import { exportHighlights } from '../../../lib/library'
 import type { TocItem } from '../../../lib/epub/book'
 import type { SearchHit } from '../../../lib/reader/engine'
+import { fmtNum } from '../../../lib/util'
+import { t } from '../../../lib/i18n'
 import { Segmented } from '../../ui'
 
 function TocList({ items, current }: { items: TocItem[]; current: number }) {
@@ -35,7 +37,7 @@ function AnnotationList({ kind }: { kind: Annotation['kind'] }) {
   const ctx = active.value!
   const list = bookAnnotations.value.filter((a) => a.kind === kind).sort((a, b) => a.s - b.s || a.start - b.start)
   if (!list.length) {
-    return <p class="muted empty-list">{kind === 'bookmark' ? 'Aún no hay marcadores. Usa el icono de marcador en la barra superior.' : 'Selecciona texto para subrayarlo con colores y añadir notas.'}</p>
+    return <p class="muted empty-list">{kind === 'bookmark' ? t('Aún no hay marcadores. Usa el icono de marcador en la barra superior.') : t('Selecciona texto para subrayarlo con colores y añadir notas.')}</p>
   }
   const remove = async (a: Annotation) => {
     await annStore.remove(a.id)
@@ -46,7 +48,7 @@ function AnnotationList({ kind }: { kind: Annotation['kind'] }) {
     <>
       {kind === 'highlight' && (
         <button type="button" class="link-btn" onClick={() => exportHighlights(ctx.record)}>
-          <Download size={16} /> Exportar a Markdown
+          <Download size={16} /> {t('Exportar a Markdown')}
         </button>
       )}
       <ul class="ann-list">
@@ -64,7 +66,7 @@ function AnnotationList({ kind }: { kind: Annotation['kind'] }) {
               <span class="ann-text">{a.text}</span>
               {a.note && <span class="ann-note">{a.note}</span>}
             </button>
-            <button type="button" class="icon-btn" aria-label="Eliminar" onClick={() => void remove(a)}>
+            <button type="button" class="icon-btn" aria-label={t('Eliminar')} onClick={() => void remove(a)}>
               <Trash2 size={16} />
             </button>
           </li>
@@ -85,13 +87,13 @@ export function TocPanel() {
   return (
     <div class="toc-panel" ref={listRef}>
       <Segmented
-        label="Sección"
+        label={t('Sección')}
         value={tab}
         onChange={setTab}
         options={[
-          { value: 'toc', label: 'Índice' },
-          { value: 'bookmark', label: 'Marcadores' },
-          { value: 'highlight', label: 'Subrayados' },
+          { value: 'toc', label: t('Índice') },
+          { value: 'bookmark', label: t('Marcadores') },
+          { value: 'highlight', label: t('Subrayados') },
         ]}
       />
       {tab === 'toc' ? <TocList items={ctx.book.toc} current={position.value.s} /> : <AnnotationList kind={tab} />}
@@ -139,9 +141,9 @@ export function SearchPanel() {
   const grouped = useMemo(() => hits, [hits])
   return (
     <div class="search-panel">
-      <input ref={inputRef} type="search" class="search-input" placeholder="Buscar en el libro…" value={q} onInput={(e) => setQ((e.target as HTMLInputElement).value)} />
+      <input ref={inputRef} type="search" class="search-input" placeholder={t('Buscar en el libro…')} value={q} onInput={(e) => setQ((e.target as HTMLInputElement).value)} />
       <p class="muted small">
-        {state === 'searching' ? `Buscando… ${hits.length}` : state === 'done' ? (hits.length >= 400 ? 'Más de 400 resultados' : `${hits.length} resultados`) : 'Escribe al menos 2 letras. No distingue mayúsculas ni tildes.'}
+        {state === 'searching' ? t('Buscando… {n}', { n: fmtNum(hits.length) }) : state === 'done' ? (hits.length >= 400 ? t('Más de 400 resultados') : t(hits.length === 1 ? '{n} resultado' : '{n} resultados', { n: fmtNum(hits.length) })) : t('Escribe al menos 2 letras. No distingue mayúsculas ni tildes.')}
       </p>
       <ul class="search-results">
         {grouped.map((h) => (

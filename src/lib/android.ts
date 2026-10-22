@@ -9,6 +9,7 @@ import { isNative, onShortcut, readSnapshot, updateWidget, writeSnapshot } from 
 import { go } from './router'
 import { info } from './toasts'
 import { addDays, debounce } from './util'
+import { t } from './i18n'
 import * as ambient from './audio/ambient'
 import * as pomodoro from './pomodoro'
 
@@ -35,7 +36,7 @@ async function restoreIfFresh() {
     const data = JSON.parse(raw) as Backup
     if (!data.books?.length && !data.profile?.xp) return
     await restoreData(data)
-    info('Progreso recuperado', 'Vuelve a importar tus EPUB: recuperarán su posición y subrayados')
+    info(t('Progreso recuperado'), t('Vuelve a importar tus EPUB: recuperarán su posición y subrayados'))
   } catch {
     /* copia ilegible: se ignora */
   }

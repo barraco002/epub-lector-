@@ -1,6 +1,7 @@
 // Puente con Android (Capacitor) con alternativas web para el PC.
 import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core'
 import { downloadBlob } from './util'
+import { t } from './i18n'
 
 interface LunariaPlugin {
   setImmersive(opts: { enabled: boolean }): Promise<void>
@@ -94,7 +95,7 @@ export async function readOpenedFile(path: string, name: string): Promise<File |
   try {
     const res = await fetch(Capacitor.convertFileSrc(path))
     if (!res.ok) return null
-    return new File([await res.blob()], name || 'libro.epub', { type: 'application/epub+zip' })
+    return new File([await res.blob()], name || t('libro.epub'), { type: 'application/epub+zip' })
   } catch {
     return null
   }

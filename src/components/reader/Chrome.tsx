@@ -11,6 +11,10 @@ import { isNative, setImmersive } from '../../lib/native'
 import { fmtClock, fmtDuration, fmtNum, uid } from '../../lib/util'
 import { info } from '../../lib/toasts'
 import { IconButton, Ring } from '../ui'
+import { t, locale } from '../../lib/i18n'
+
+/** Un decimal con el separador de la configuración regional (coma en español, punto en inglés). */
+const dec1 = (v: number) => v.toLocaleString(locale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 
 /** Re-renderiza cada `ms` mientras el componente está montado y la app visible. */
 export function useTicker(ms: number, enabled = true) {
@@ -54,14 +58,14 @@ async function toggleBookmark() {
   if (existing) {
     await annStore.remove(existing.id)
     bookAnnotations.value = bookAnnotations.value.filter((a) => a.id !== existing.id)
-    info('Marcador eliminado')
+    info(t('Marcador eliminado'))
     return
   }
   const text = ctx.engine.chapterText(pos.s).slice(pos.c, pos.c + 140).replace(/\s+/g, ' ').trim()
   const a: Annotation = { id: uid(), bookId: ctx.record.id, kind: 'bookmark', s: pos.s, start: pos.c, end: pos.c, text, color: 'yellow', createdAt: Date.now() }
   await annStore.put(a)
   bookAnnotations.value = [...bookAnnotations.value, a]
-  info('Marcador añadido', ctx.chapterLabel(pos.s))
+  info(t('Marcador añadido'), ctx.chapterLabel(pos.s))
 }
 
 // Las barras solo existen mientras el menú está visible: ocultas no cuestan nada al hacer scroll
@@ -72,20 +76,20 @@ export function TopBar() {
   const marked = !!isBookmarked(bookAnnotations.value, p.s, p.c)
   return (
     <header class="r-top">
-      <IconButton label="Volver a la biblioteca" onClick={() => go({ name: 'library' })}>
+      <IconButton label={t('Volver a la biblioteca')} onClick={() => go({ name: 'library' })}>
         <ArrowLeft size={22} />
       </IconButton>
       <div class="r-top-title">
         <strong>{ctx.record.title}</strong>
         <span>{ctx.chapterLabel(p.s)}</span>
       </div>
-      <IconButton label="Buscar en el libro" onClick={() => openPanel('search')}>
+      <IconButton label={t('Buscar en el libro')} onClick={() => openPanel('search')}>
         <Search size={20} />
       </IconButton>
-      <IconButton label={marked ? 'Quitar marcador' : 'Añadir marcador'} onClick={toggleBookmark} active={marked}>
+      <IconButton label={marked ? t('Quitar marcador') : t('Añadir marcador')} onClick={toggleBookmark} active={marked}>
         {marked ? <BookmarkCheck size={20} /> : <Bookmark size={20} />}
       </IconButton>
-      <IconButton label="Índice, marcadores y subrayados" onClick={() => openPanel('toc')}>
+      <IconButton label={t('Índice, marcadores y subrayados')} onClick={() => openPanel('toc')}>
         <List size={20} />
       </IconButton>
     </header>
@@ -112,9 +116,9 @@ function SessionStrip() {
     <div class="session-strip">
       <Ring value={goalProgress.value} size={28} stroke={3} />
       <span>
-        <strong>Sesión</strong> {fmtDuration(v.ms, true)} · {fmtNum(v.words)} palabras · +{gained.toFixed(1).replace('.', ',')}%
+        <strong>{t('Sesión')}</strong> {fmtDuration(v.ms, true)} · {t('{n} palabras', { n: fmtNum(v.words) })} · +{dec1(gained)}%
       </span>
-      <span class="muted">Hoy {Math.floor(today.value.ms / 60000)}/{settings.value.dailyGoalMin} min</span>
+      <span class="muted">{t('Hoy {n}/{goal} min', { n: Math.floor(today.value.ms / 60000), goal: settings.value.dailyGoalMin })}</span>
     </div>
   )
 }
@@ -130,7 +134,7 @@ function ProgressSlider() {
     <div class="progress-block">
       <div class="progress-labels">
         <span class="progress-chapter">{preview}</span>
-        <span class="progress-pct">{(shown * 100).toFixed(1).replace('.', ',')}%</span>
+        <span class="progress-pct">{dec1(shown * 100)}%</span>
       </div>
       <input
         type="range"
@@ -138,7 +142,7 @@ function ProgressSlider() {
         min={0}
         max={1000}
         value={Math.round(shown * 1000)}
-        aria-label="Progreso del libro"
+        aria-label={t('Progreso del libro')}
         style={{ '--pct': `${shown * 100}%` }}
         onInput={(e) => setDrag(+(e.target as HTMLInputElement).value / 1000)}
         onChange={(e) => {
@@ -150,8 +154,8 @@ function ProgressSlider() {
         }}
       />
       <div class="progress-labels muted small">
-        <span>{left.chapter < 1 ? 'Termina el capítulo' : `${fmtDuration(left.chapter * 60000, true)} en el capítulo`}</span>
-        <span>{fmtDuration(left.book * 60000, true)} en el libro</span>
+        <span>{left.chapter < 1 ? t('Termina el capítulo') : t('{time} en el capítulo', { time: fmtDuration(left.chapter * 60000, true) })}</span>
+        <span>{t('{time} en el libro', { time: fmtDuration(left.book * 60000, true) })}</span>
       </div>
     </div>
   )
@@ -162,9 +166,9 @@ function PomoButton() {
   useTicker(1000, st.running && chrome.value)
   const label = st.running || !st.idle ? fmtClock(remainingMs()) : null
   return (
-    <button type="button" class={`r-action ${st.running ? 'is-active' : ''}`} onClick={() => openPanel('pomo')} aria-label="Pomodoro">
+    <button type="button" class={`r-action ${st.running ? 'is-active' : ''}`} onClick={() => openPanel('pomo')} aria-label={t('Pomodoro')}>
       <Timer size={20} />
-      <span>{label ?? 'Pomodoro'}</span>
+      <span>{label ?? t('Pomodoro')}</span>
     </button>
   )
 }
@@ -180,20 +184,20 @@ export function BottomBar() {
           <nav class="r-actions">
             <button type="button" class={`r-action ${panel.value === 'typo' ? 'is-active' : ''}`} onClick={() => openPanel('typo')}>
               <Type size={20} />
-              <span>Texto</span>
+              <span>{t('Texto')}</span>
             </button>
             <button type="button" class={`r-action ${panel.value === 'theme' ? 'is-active' : ''}`} onClick={() => openPanel('theme')}>
               <Palette size={20} />
-              <span>Tema</span>
+              <span>{t('Tema')}</span>
             </button>
             <button type="button" class={`r-action ${soundPlaying.value ? 'is-active' : ''}`} onClick={() => openPanel('sound')}>
               <Headphones size={20} />
-              <span>Sonidos</span>
+              <span>{t('Sonidos')}</span>
             </button>
             <PomoButton />
             <button type="button" class={`r-action ${ctx.auto.running.value ? 'is-active' : ''}`} onClick={() => openPanel('auto')}>
               <Play size={20} />
-              <span>Auto</span>
+              <span>{t('Auto')}</span>
             </button>
             <button
               type="button"
@@ -201,7 +205,7 @@ export function BottomBar() {
               onClick={() => update({ nightMode: nightActive.value ? 'off' : 'on' })}
             >
               {nightActive.value ? <Moon size={20} /> : <Sun size={20} />}
-              <span>{nightActive.value ? 'Noche' : 'Día'}</span>
+              <span>{nightActive.value ? t('Noche') : t('Día')}</span>
             </button>
             <button
               type="button"
@@ -213,7 +217,7 @@ export function BottomBar() {
               }}
             >
               {fs ? <Minimize size={20} /> : <Maximize size={20} />}
-              <span>Pantalla</span>
+              <span>{t('Pantalla')}</span>
             </button>
           </nav>
     </footer>
@@ -249,10 +253,10 @@ export function StatusLine() {
   const now = new Date()
   return (
     <div class="status-line" aria-hidden="true">
-      <span>{now.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}</span>
+      <span>{now.toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' })}</span>
       {st.running && <span>🍅 {Math.ceil(remainingMs() / 60000)}m</span>}
-      <span class="status-mid">{left.chapter >= 1 ? `${Math.round(left.chapter)} min · cap.` : 'fin de cap.'}</span>
-      <span>{(p.progress * 100).toFixed(1).replace('.', ',')}%</span>
+      <span class="status-mid">{left.chapter >= 1 ? t('{n} min · cap.', { n: Math.round(left.chapter) }) : t('fin de cap.')}</span>
+      <span>{dec1(p.progress * 100)}%</span>
       {battery != null && <span>{Math.round(battery * 100)}%🔋</span>}
     </div>
   )
@@ -286,26 +290,26 @@ export function AutoPill() {
   if (!ctx || (!running && !paused)) return null
   const set = (v: number) => update({ autoWpm: Math.max(40, Math.min(1200, v)) })
   return (
-    <div class={`auto-pill ${idle ? 'is-idle' : ''} ${paused ? 'is-paused' : ''}`} role="toolbar" aria-label="Autoscroll">
-      <IconButton label="Más lento" onClick={() => set(wpm - 10)}>
+    <div class={`auto-pill ${idle ? 'is-idle' : ''} ${paused ? 'is-paused' : ''}`} role="toolbar" aria-label={t('Autoscroll')}>
+      <IconButton label={t('Más lento')} onClick={() => set(wpm - 10)}>
         <Minus size={18} />
       </IconButton>
       <span class="auto-speed">
-        {wpm} <small>ppm</small>
+        {wpm} <small>{t('ppm')}</small>
       </span>
-      <IconButton label="Más rápido" onClick={() => set(wpm + 10)}>
+      <IconButton label={t('Más rápido')} onClick={() => set(wpm + 10)}>
         <Plus size={18} />
       </IconButton>
       {paused ? (
-        <IconButton label="Reanudar autoscroll" onClick={() => ctx.auto.start()}>
+        <IconButton label={t('Reanudar autoscroll')} onClick={() => ctx.auto.start()}>
           <Play size={18} />
         </IconButton>
       ) : (
-        <IconButton label="Pausar autoscroll" onClick={() => ctx.auto.pause()}>
+        <IconButton label={t('Pausar autoscroll')} onClick={() => ctx.auto.pause()}>
           <Pause size={18} />
         </IconButton>
       )}
-      <IconButton label="Salir del modo auto" onClick={() => ctx.auto.stop()}>
+      <IconButton label={t('Salir del modo auto')} onClick={() => ctx.auto.stop()}>
         <X size={18} />
       </IconButton>
     </div>
@@ -337,9 +341,9 @@ export function ReturnChip() {
   return (
     <div class="return-chip">
       <button type="button" class="return-go" onClick={goBack}>
-        <Undo2 size={16} /> Volver a <em>{spot.label}</em>
+        <Undo2 size={16} /> {t('Volver a')} <em>{spot.label}</em>
       </button>
-      <button type="button" class="return-x" aria-label="Descartar" onClick={() => (returnSpot.value = null)}>
+      <button type="button" class="return-x" aria-label={t('Descartar')} onClick={() => (returnSpot.value = null)}>
         <X size={14} />
       </button>
     </div>

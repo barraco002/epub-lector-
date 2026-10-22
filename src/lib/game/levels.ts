@@ -1,3 +1,5 @@
+import { t } from '../i18n'
+
 // Curva de niveles: suave al principio (nivel 2 el primer día) y exigente después
 // (nivel 30 ≈ 3-4 meses leyendo 30 min diarios).
 export const xpForLevel = (level: number) => {
@@ -27,7 +29,7 @@ const TITLES: [number, string][] = [
   [50, 'Leyenda lunar'],
 ]
 
-export const levelTitle = (level: number) => [...TITLES].reverse().find(([l]) => level >= l)![1]
+export const levelTitle = (level: number) => t([...TITLES].reverse().find(([l]) => level >= l)![1])
 
 /** XP por palabras leídas: 1 XP cada 50 palabras (≈5 XP por minuto a 250 ppm). */
 export const XP = {

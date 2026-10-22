@@ -34,14 +34,14 @@ final class Avisos {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
         NotificationManager nm = ctx.getSystemService(NotificationManager.class);
         if (nm == null) return;
-        NotificationChannel curso = new NotificationChannel(CANAL_CURSO, "Pomodoro en curso", NotificationManager.IMPORTANCE_LOW);
-        curso.setDescription("Cuenta atrás de la fase actual");
+        NotificationChannel curso = new NotificationChannel(CANAL_CURSO, ctx.getString(R.string.pomo_channel_running), NotificationManager.IMPORTANCE_LOW);
+        curso.setDescription(ctx.getString(R.string.pomo_channel_running_desc));
         curso.setShowBadge(false);
-        NotificationChannel fin = new NotificationChannel(CANAL_FIN, "Fin de pomodoro", NotificationManager.IMPORTANCE_HIGH);
-        fin.setDescription("Aviso al terminar el enfoque o el descanso");
+        NotificationChannel fin = new NotificationChannel(CANAL_FIN, ctx.getString(R.string.pomo_channel_end), NotificationManager.IMPORTANCE_HIGH);
+        fin.setDescription(ctx.getString(R.string.pomo_channel_end_desc));
         fin.enableVibration(true);
-        NotificationChannel sonido = new NotificationChannel(CANAL_SONIDO, "Sonido ambiente", NotificationManager.IMPORTANCE_LOW);
-        sonido.setDescription("Controles mientras suena con la pantalla apagada");
+        NotificationChannel sonido = new NotificationChannel(CANAL_SONIDO, ctx.getString(R.string.ambient_title), NotificationManager.IMPORTANCE_LOW);
+        sonido.setDescription(ctx.getString(R.string.ambient_channel_desc));
         sonido.setShowBadge(false);
         nm.createNotificationChannel(curso);
         nm.createNotificationChannel(fin);
@@ -123,7 +123,7 @@ final class Avisos {
         crearCanales(ctx);
         NotificationCompat.Builder b = new NotificationCompat.Builder(ctx, CANAL_FIN)
             .setSmallIcon(R.drawable.ic_stat_lunaria)
-            .setContentTitle(titulo != null ? titulo : "Fase terminada")
+            .setContentTitle(titulo != null ? titulo : ctx.getString(R.string.pomo_phase_done))
             .setContentText(texto)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)

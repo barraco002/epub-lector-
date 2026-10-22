@@ -24,6 +24,9 @@ export function t(text: string, vars?: Record<string, string | number>): string 
   return out
 }
 
+/** Nombre para mostrar: los integrados se traducen; los que crea el usuario se muestran tal cual. */
+export const shown = (name: string, custom?: boolean): string => (custom ? name : t(name))
+
 /** Configuración regional para fechas y números. */
 export const locale = (): string => (lang.value === 'es' ? 'es-ES' : 'en-GB')
 

@@ -42,13 +42,13 @@ public class AmbientService extends Service {
         );
         Notification n = new NotificationCompat.Builder(this, Avisos.CANAL_SONIDO)
             .setSmallIcon(R.drawable.ic_stat_lunaria)
-            .setContentTitle(titulo != null && !titulo.isEmpty() ? titulo : "Sonido ambiente")
-            .setContentText("Sigue sonando con la pantalla apagada")
+            .setContentTitle(titulo != null && !titulo.isEmpty() ? titulo : getString(R.string.ambient_title))
+            .setContentText(getString(R.string.ambient_still_playing))
             .setOngoing(true)
             .setSilent(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setContentIntent(Avisos.abrirApp(this, null))
-            .addAction(0, "Pausar", pausar)
+            .addAction(0, getString(R.string.ambient_pause), pausar)
             .build();
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

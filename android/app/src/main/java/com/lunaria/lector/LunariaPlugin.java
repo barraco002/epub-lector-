@@ -110,7 +110,7 @@ public class LunariaPlugin extends Plugin {
                 if (isPinned()) getActivity().stopLockTask();
                 call.resolve();
             } catch (Exception e) {
-                call.reject("No se pudo dejar de fijar la app", e);
+                call.reject(getContext().getString(R.string.err_unpin), e);
             }
         });
     }
@@ -202,12 +202,12 @@ public class LunariaPlugin extends Plugin {
             send.putExtra(Intent.EXTRA_STREAM, uri);
             send.putExtra(Intent.EXTRA_TITLE, name);
             send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            Intent chooser = Intent.createChooser(send, "Guardar o compartir");
+            Intent chooser = Intent.createChooser(send, getContext().getString(R.string.share_chooser_title));
             chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             getActivity().startActivity(chooser);
             call.resolve();
         } catch (Exception e) {
-            call.reject("No se pudo compartir el archivo", e);
+            call.reject(getContext().getString(R.string.err_share_failed), e);
         }
     }
 
@@ -221,10 +221,10 @@ public class LunariaPlugin extends Plugin {
                 process.setType("text/plain");
                 process.putExtra(Intent.EXTRA_PROCESS_TEXT, text);
                 process.putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, true);
-                getActivity().startActivity(Intent.createChooser(process, "Traducir con…"));
+                getActivity().startActivity(Intent.createChooser(process, getContext().getString(R.string.translate_chooser_title)));
                 call.resolve();
             } catch (Exception e) {
-                call.reject("No hay apps de traducción instaladas", e);
+                call.reject(getContext().getString(R.string.err_no_translate_app), e);
             }
         });
     }
@@ -235,16 +235,16 @@ public class LunariaPlugin extends Plugin {
     public void scheduleTimer(PluginCall call) {
         Long endsAt = call.getLong("endsAt");
         if (endsAt == null) {
-            call.reject("Falta endsAt");
+            call.reject(getContext().getString(R.string.err_missing_ends_at));
             return;
         }
         pedirPermisoAvisos();
         Avisos.programarFase(
             getContext(),
             endsAt,
-            call.getString("title", "Pomodoro"),
+            call.getString("title", getContext().getString(R.string.pomo_default_title)),
             call.getString("body", ""),
-            call.getString("endTitle", "Fase terminada"),
+            call.getString("endTitle", getContext().getString(R.string.pomo_phase_done)),
             call.getString("endBody", "")
         );
         call.resolve();
@@ -301,7 +301,7 @@ public class LunariaPlugin extends Plugin {
     public void setAudioActive(PluginCall call) {
         boolean active = Boolean.TRUE.equals(call.getBoolean("active", false));
         boolean screenOff = Boolean.TRUE.equals(call.getBoolean("screenOff", false));
-        String title = call.getString("title", "Sonido ambiente");
+        String title = call.getString("title", getContext().getString(R.string.ambient_title));
         Context ctx = getContext();
         if (audioManager == null) audioManager = (AudioManager) ctx.getSystemService(Context.AUDIO_SERVICE);
         if (active) {
@@ -396,7 +396,7 @@ public class LunariaPlugin extends Plugin {
                 new BackupManager(getContext()).dataChanged();
                 call.resolve();
             } catch (Exception e) {
-                call.reject("No se pudo guardar la copia automática", e);
+                call.reject(getContext().getString(R.string.err_backup_write), e);
             }
         }).start();
     }
@@ -420,7 +420,7 @@ public class LunariaPlugin extends Plugin {
             res.put("data", new String(bytes, 0, off, StandardCharsets.UTF_8));
             call.resolve(res);
         } catch (Exception e) {
-            call.reject("No se pudo leer la copia automática", e);
+            call.reject(getContext().getString(R.string.err_backup_read), e);
         }
     }
 
@@ -479,7 +479,7 @@ public class LunariaPlugin extends Plugin {
         new Thread(() -> {
             try {
                 ContentResolver resolver = activity.getContentResolver();
-                String name = displayName(resolver, source);
+                String name = displayName(activity, resolver, source);
                 File dir = new File(activity.getCacheDir(), "abiertos");
                 if (!dir.exists() && !dir.mkdirs()) throw new IllegalStateException("Sin caché");
                 File[] old = dir.listFiles();
@@ -504,7 +504,7 @@ public class LunariaPlugin extends Plugin {
         }).start();
     }
 
-    private static String displayName(ContentResolver resolver, Uri uri) {
+    private static String displayName(Context ctx, ContentResolver resolver, Uri uri) {
         String name = null;
         if ("content".equals(uri.getScheme())) {
             try (Cursor cursor = resolver.query(uri, new String[] { OpenableColumns.DISPLAY_NAME }, null, null, null)) {
@@ -514,7 +514,7 @@ public class LunariaPlugin extends Plugin {
             }
         }
         if (name == null) name = uri.getLastPathSegment();
-        if (name == null || name.isEmpty()) name = "libro.epub";
+        if (name == null || name.isEmpty()) name = ctx.getString(R.string.epub_fallback_name);
         if (!name.toLowerCase().endsWith(".epub")) name = name + ".epub";
         return name;
     }

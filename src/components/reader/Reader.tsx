@@ -23,6 +23,7 @@ import { BottomBar, ChapterPill, EdgeProgress, StatusLine, TopBar, AutoPill, Ret
 import { Panels } from './Panels'
 import { SelectionLayer } from './Selection'
 import { BreakOverlay, FootnotePopup, ImageViewer, type FootnoteData } from './Overlays'
+import { t } from '../../lib/i18n'
 
 const TAP_MAX_MS = 350
 const TAP_MAX_MOVE = 10
@@ -65,7 +66,7 @@ export function Reader({ bookId }: { bookId: string }) {
       try {
         record = (await books.get(bookId)) ?? null
         const blob = await books.file(bookId)
-        if (!record || !blob) throw new Error('No se encontró el libro')
+        if (!record || !blob) throw new Error(t('No se encontró el libro'))
         const book = await openEpub(new Uint8Array(await blob.arrayBuffer()))
         if (cancelled) return
         // Por seguridad, si los conteos no cuadran con el spine, los rellenamos
@@ -80,7 +81,7 @@ export function Reader({ bookId }: { bookId: string }) {
           if (!settings.peek().chapterHeaders || !labels[i]) return null
           // Si el título ya numera el capítulo, un «N de M» propio podría contradecirlo
           const n = starts.indexOf(i) + 1
-          return { label: numbersItself(labels[i]) ? undefined : `${n} de ${starts.length}`, title: labels[i] }
+          return { label: numbersItself(labels[i]) ? undefined : t('{n} de {total}', { n, total: starts.length }), title: labels[i] }
         }
         const chapterLabel = (s: number) => {
           for (let i = s; i >= 0; i--) if (labels[i]) return labels[i]
@@ -199,7 +200,7 @@ export function Reader({ bookId }: { bookId: string }) {
       } catch (e) {
         if (!cancelled) {
           setStatus('error')
-          toastError('No se pudo abrir el libro', e instanceof Error ? e.message : undefined)
+          toastError(t('No se pudo abrir el libro'), e instanceof Error ? e.message : undefined)
         }
       }
     })()
@@ -560,9 +561,9 @@ export function Reader({ bookId }: { bookId: string }) {
         {status === 'ready' && (
           <div class="book-end">
             <div class="book-end-mark">❦</div>
-            <p>{finished ? '¡Libro terminado!' : 'Fin del libro'}</p>
+            <p>{finished ? t('¡Libro terminado!') : t('Fin del libro')}</p>
             <button type="button" class="btn" onClick={() => go({ name: 'library' })}>
-              Volver a la biblioteca
+              {t('Volver a la biblioteca')}
             </button>
           </div>
         )}
@@ -574,9 +575,9 @@ export function Reader({ bookId }: { bookId: string }) {
       )}
       {status === 'error' && (
         <div class="reader-loading">
-          <p>No se pudo abrir este libro.</p>
+          <p>{t('No se pudo abrir este libro.')}</p>
           <button type="button" class="btn" onClick={() => go({ name: 'library' })}>
-            Volver
+            {t('Volver')}
           </button>
         </div>
       )}

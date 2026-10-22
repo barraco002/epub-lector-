@@ -8,6 +8,7 @@ import { settings } from '../settings'
 import { toast } from '../toasts'
 import { fmtNum } from '../util'
 import type { PositionInfo } from './engine'
+import { t } from '../i18n'
 
 const IDLE_MS = 3 * 60_000
 const TICK_MS = 10_000
@@ -82,7 +83,7 @@ export class ReadingSession {
     // Capítulo terminado: avanzamos al siguiente habiendo pasado por el final del anterior
     if (this.lastChapter >= 0 && pos.s === this.lastChapter + 1 && this.lastChapterProgress > 0.85) {
       if (settings.value.toastChapter && settings.value.toastsEnabled) {
-        toast({ kind: 'progress', icon: '📖', title: `Capítulo terminado`, body: `+10 XP · vas en ${Math.round(info.progress * 100)}%`, bar: info.progress })
+        toast({ kind: 'progress', icon: '📖', title: t('Capítulo terminado'), body: t('+10 XP · vas en {pct}%', { pct: Math.round(info.progress * 100) }), bar: info.progress })
       }
       chapterDone()
       this.chaptersDone++
@@ -111,7 +112,7 @@ export class ReadingSession {
       const step = Math.floor(words / s.toastWords)
       if (step > this.wordsShown) {
         this.wordsShown = step
-        toast({ kind: 'progress', icon: '✍️', title: `Leíste ${fmtNum(step * s.toastWords)} palabras`, body: 'en esta sesión', bar: progress })
+        toast({ kind: 'progress', icon: '✍️', title: t('Leíste {n} palabras', { n: fmtNum(step * s.toastWords) }), body: t('en esta sesión'), bar: progress })
         return
       }
     }
@@ -123,8 +124,8 @@ export class ReadingSession {
         toast({
           kind: 'progress',
           icon: '📈',
-          title: `Avanzaste ${Math.round(gained)}%`,
-          body: `en esta sesión · vas en ${Math.round(progress * 100)}%`,
+          title: t('Avanzaste {pct}%', { pct: Math.round(gained) }),
+          body: t('en esta sesión · vas en {pct}%', { pct: Math.round(progress * 100) }),
           bar: progress,
         })
       }

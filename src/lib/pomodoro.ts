@@ -1,6 +1,7 @@
 // Pomodoro basado en marcas de tiempo: un único setTimeout hasta el final de la fase.
 // No hay "tic" cada segundo; la interfaz solo se refresca mientras está visible.
 import { computed, effect, signal } from '@preact/signals'
+import { locale, t } from './i18n'
 import { settings } from './settings'
 import { pomodoroDone } from './game/game'
 import { toast } from './toasts'
@@ -123,8 +124,8 @@ function complete(skipped = false) {
     toast({
       kind: 'pomodoro',
       icon: s.phase === 'focus' ? '🍅' : '☀️',
-      title: s.phase === 'focus' ? '¡Pomodoro completado! +25 XP' : 'Fin del descanso',
-      body: s.phase === 'focus' ? (next === 'long' ? 'Toca un descanso largo' : 'Toca un descanso corto') : 'De vuelta a la lectura',
+      title: s.phase === 'focus' ? t('¡Pomodoro completado! +25 XP') : t('Fin del descanso'),
+      body: s.phase === 'focus' ? (next === 'long' ? t('Toca un descanso largo') : t('Toca un descanso corto')) : t('De vuelta a la lectura'),
     })
   }
   const auto = next === 'focus' ? p.autoFocus : p.autoBreak
@@ -143,13 +144,13 @@ effect(() => {
     if (scheduledFor === s.endsAt) return
     scheduledFor = s.endsAt
     const focus = s.phase === 'focus'
-    const at = new Date(s.endsAt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
+    const at = new Date(s.endsAt).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' })
     void scheduleTimer({
       endsAt: s.endsAt,
-      title: focus ? '🍅 Enfoque' : `☀️ ${PHASE_LABEL[s.phase]}`,
-      body: `Termina a las ${at}`,
-      endTitle: focus ? '🍅 ¡Pomodoro completado!' : '☀️ Fin del descanso',
-      endBody: focus ? 'Toca descansar un poco' : 'De vuelta a la lectura',
+      title: focus ? `🍅 ${t('Enfoque')}` : `☀️ ${t(PHASE_LABEL[s.phase])}`,
+      body: t('Termina a las {time}', { time: at }),
+      endTitle: focus ? `🍅 ${t('¡Pomodoro completado!')}` : `☀️ ${t('Fin del descanso')}`,
+      endBody: focus ? t('Toca descansar un poco') : t('De vuelta a la lectura'),
     })
   } else if (scheduledFor !== null && !document.hidden) {
     // Pausa, reinicio o fin con la app delante (con la app oculta se deja sonar la alarma)

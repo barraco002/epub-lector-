@@ -8,12 +8,14 @@ import { VocabSection } from './Vocab'
 import { library } from '../lib/library'
 import { settings, update } from '../lib/settings'
 import { addDays, dayKey, fmtDuration, fmtNum } from '../lib/util'
+import { t, locale } from '../lib/i18n'
 import { Bar, IconButton, Ring, Slider } from './ui'
 
 const WEEKS = 18
-const DOW = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+/** Inicial de cada día, de lunes a domingo, en el idioma de la interfaz. */
+const dowLabels = () => Array.from({ length: 7 }, (_, i) => new Date(2024, 0, 1 + i).toLocaleDateString(locale(), { weekday: 'narrow' }))
 const fmtDay = (key: string) =>
-  new Date(key + 'T12:00').toLocaleDateString('es', {
+  new Date(key + 'T12:00').toLocaleDateString(locale(), {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -49,7 +51,7 @@ function Heatmap({ onPick }: { onPick: (text: string) => void }) {
       const key = addDays(start, w * 7 + d)
       if (key > todayKey) continue
       const ms = key === todayKey ? today.value.ms : (h.get(key)?.ms ?? 0)
-      const label = `${fmtDay(key)}: ${ms ? fmtDuration(ms) : 'sin lectura'}`
+      const label = `${fmtDay(key)}: ${ms ? fmtDuration(ms) : t('sin lectura')}`
       cells.push(
         <rect
           key={key}
@@ -72,8 +74,8 @@ function Heatmap({ onPick }: { onPick: (text: string) => void }) {
   const width = 20 + WEEKS * (cell + gap)
   return (
     <div class="heatmap">
-      <svg viewBox={`0 0 ${width} ${7 * (cell + gap)}`} role="img" aria-label={`Minutos leídos por día, últimas ${WEEKS} semanas`}>
-        {DOW.map((d, i) =>
+      <svg viewBox={`0 0 ${width} ${7 * (cell + gap)}`} role="img" aria-label={t('Minutos leídos por día, últimas {n} semanas', { n: WEEKS })}>
+        {dowLabels().map((d, i) =>
           i % 2 === 0 ? (
             <text key={d} x={0} y={i * (cell + gap) + cell - 3} class="axis-text">
               {d}
@@ -83,11 +85,11 @@ function Heatmap({ onPick }: { onPick: (text: string) => void }) {
         {cells}
       </svg>
       <div class="hm-legend" aria-hidden="true">
-        <span>Menos</span>
+        <span>{t('Menos')}</span>
         {LEVEL_FILL.map((f) => (
           <i style={{ background: f }} />
         ))}
-        <span>Meta cumplida</span>
+        <span>{t('Meta cumplida')}</span>
       </div>
     </div>
   )
@@ -112,11 +114,11 @@ function DailyBars({ onPick }: { onPick: (text: string) => void }) {
   const goalY = y(goalMin)
   return (
     <div class="bars">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Minutos leídos en los últimos 14 días">
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t('Minutos leídos en los últimos 14 días')}>
         <line x1={24} x2={W} y1={base} y2={base} class="axis-line" />
         <line x1={24} x2={W} y1={goalY} y2={goalY} class="goal-line" />
         <text x={0} y={goalY + 4} class="axis-text">
-          meta
+          {t('meta')}
         </text>
         {data.map((d, i) => {
           const x = 28 + i * slot + (slot - bw) / 2
@@ -144,7 +146,7 @@ function DailyBars({ onPick }: { onPick: (text: string) => void }) {
         })}
       </svg>
       <table class="sr-only">
-        <caption>Minutos leídos por día</caption>
+        <caption>{t('Minutos leídos por día')}</caption>
         <tbody>
           {data.map((d) => (
             <tr key={d.key}>
@@ -172,7 +174,7 @@ export function Stats() {
   const p = profile.value
   const lv = level.value
   const game = settings.value.gameMode !== 'estadisticas'
-  const [readout, setReadout] = useState<string>('Toca un día para ver el detalle')
+  const [readout, setReadout] = useState<string>(t('Toca un día para ver el detalle'))
   const ctx: AchievementCtx = {
     p,
     today: today.value,
@@ -191,24 +193,29 @@ export function Stats() {
   return (
     <div class="page stats-page">
       <header class="topbar">
-        <IconButton label="Volver" onClick={() => go({ name: 'library' })}>
+        <IconButton label={t('Volver')} onClick={() => go({ name: 'library' })}>
           <ArrowLeft size={22} />
         </IconButton>
-        <h1 class="page-title">Progreso</h1>
+        <h1 class="page-title">{t('Progreso')}</h1>
         <span />
       </header>
       <main class="page-main">
         {game && (
           <section class="level-card card">
             <div class="level-num">
-              <span class="eyebrow">Nivel</span>
+              <span class="eyebrow">{t('Nivel')}</span>
               <strong>{lv.level}</strong>
             </div>
             <div class="level-info">
               <h2>{levelTitle(lv.level)}</h2>
               <Bar value={lv.progress} />
               <span class="muted small">
-                {fmtNum(p.xp - lv.base)} / {fmtNum(lv.next - lv.base)} XP para el nivel {lv.level + 1} · {fmtNum(p.xp)} XP en total
+                {t('{xp} / {next} XP para el nivel {level} · {total} XP en total', {
+                  xp: fmtNum(p.xp - lv.base),
+                  next: fmtNum(lv.next - lv.base),
+                  level: lv.level + 1,
+                  total: fmtNum(p.xp),
+                })}
               </span>
             </div>
           </section>
@@ -220,24 +227,32 @@ export function Stats() {
               <span class="ring-num">{Math.floor(today.value.ms / 60000)}</span>
             </Ring>
             <div>
-              <span class="eyebrow">Hoy</span>
-              <strong class="tile-value">{goalProgress.value >= 1 ? 'Meta ✓' : `${settings.value.dailyGoalMin} min`}</strong>
-              <span class="muted small">{fmtNum(today.value.words)} palabras</span>
+              <span class="eyebrow">{t('Hoy')}</span>
+              <strong class="tile-value">{goalProgress.value >= 1 ? t('Meta ✓') : `${settings.value.dailyGoalMin} min`}</strong>
+              <span class="muted small">{t('{n} palabras', { n: fmtNum(today.value.words) })}</span>
             </div>
           </div>
-          <Tile label="Racha" value={`🔥 ${streak.value}`} sub={`Mejor: ${p.streak.best} · 🧊 ${p.streak.freezes} comodín${p.streak.freezes === 1 ? '' : 'es'}`} />
-          <Tile label="Esta semana" value={fmtDuration(weekMs, true)} sub="últimos 7 días" />
-          <Tile label="Tiempo total" value={fmtDuration(p.totals.ms, true)} sub={`${fmtNum(p.totals.words)} palabras`} />
-          <Tile label="Libros terminados" value={String(p.totals.booksFinished)} sub={`${library.value.length} en la biblioteca`} />
-          <Tile label="Pomodoros" value={`🍅 ${p.totals.pomodoros}`} sub={`hoy: ${today.value.pomodoros}`} />
-          <Tile label="Velocidad" value={`${readingWpm.value} ppm`} sub="palabras por minuto" />
+          <Tile
+            label={t('Racha')}
+            value={`🔥 ${streak.value}`}
+            sub={
+              p.streak.freezes === 1
+                ? t('Mejor: {best} · 🧊 {n} comodín', { best: p.streak.best, n: p.streak.freezes })
+                : t('Mejor: {best} · 🧊 {n} comodines', { best: p.streak.best, n: p.streak.freezes })
+            }
+          />
+          <Tile label={t('Esta semana')} value={fmtDuration(weekMs, true)} sub={t('últimos 7 días')} />
+          <Tile label={t('Tiempo total')} value={fmtDuration(p.totals.ms, true)} sub={t('{n} palabras', { n: fmtNum(p.totals.words) })} />
+          <Tile label={t('Libros terminados')} value={String(p.totals.booksFinished)} sub={t('{n} en la biblioteca', { n: library.value.length })} />
+          <Tile label={t('Pomodoros')} value={`🍅 ${p.totals.pomodoros}`} sub={t('hoy: {n}', { n: today.value.pomodoros })} />
+          <Tile label={t('Velocidad')} value={t('{n} ppm', { n: readingWpm.value })} sub={t('palabras por minuto')} />
         </section>
 
         <VocabSection />
 
         <section class="card chart-card">
           <div class="chart-head">
-            <h2>Últimas {WEEKS} semanas</h2>
+            <h2>{t('Últimas {n} semanas', { n: WEEKS })}</h2>
             <span class="muted small" aria-live="polite">
               {readout}
             </span>
@@ -247,12 +262,12 @@ export function Stats() {
 
         <section class="card chart-card">
           <div class="chart-head">
-            <h2>Minutos por día</h2>
-            <span class="muted small">Meta: {settings.value.dailyGoalMin} min</span>
+            <h2>{t('Minutos por día')}</h2>
+            <span class="muted small">{t('Meta: {n} min', { n: settings.value.dailyGoalMin })}</span>
           </div>
           <DailyBars onPick={setReadout} />
           <Slider
-            label="Meta diaria"
+            label={t('Meta diaria')}
             value={settings.value.dailyGoalMin}
             min={5}
             max={180}
@@ -265,9 +280,9 @@ export function Stats() {
         {game && (
           <section class="achievements">
             <div class="shelf-head">
-              <h2>Logros</h2>
+              <h2>{t('Logros')}</h2>
               <span class="muted small">
-                {unlocked.length} de {ACHIEVEMENTS.length}
+                {t('{n} de {total}', { n: unlocked.length, total: ACHIEVEMENTS.length })}
               </span>
             </div>
             <div class="ach-grid">
@@ -280,12 +295,12 @@ export function Stats() {
                       {got ? a.icon : <Lock size={18} />}
                     </span>
                     <div class="ach-text">
-                      <strong>{a.name}</strong>
-                      <span class="muted small">{a.desc}</span>
+                      <strong>{t(a.name)}</strong>
+                      <span class="muted small">{t(a.desc, a.descVars)}</span>
                       {!got && a.progress && <Bar value={prog} thin />}
                       {got && (
                         <span class="muted small">
-                          +{a.xp} XP · {new Date(got).toLocaleDateString('es')}
+                          +{a.xp} XP · {new Date(got).toLocaleDateString(locale())}
                         </span>
                       )}
                     </div>

@@ -9,10 +9,11 @@ import { saveFile } from '../lib/native'
 import { bookStats, sessionSummary, type BookStats } from '../lib/summary'
 import { error } from '../lib/toasts'
 import { fmtDuration, fmtNum } from '../lib/util'
+import { t, locale } from '../lib/i18n'
 import { Bar, Sheet } from './ui'
 
 const fmtDate = (d: string | number) =>
-  new Date(d).toLocaleDateString('es', {
+  new Date(d).toLocaleDateString(locale(), {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -26,20 +27,20 @@ export function SessionSummarySheet() {
   if (s.finished && book) return <FinishedSheet book={book} onClose={close} />
   const game = settings.value.gameMode !== 'estadisticas'
   return (
-    <Sheet title="Sesión de lectura" onClose={close} size="sm">
+    <Sheet title={t('Sesión de lectura')} onClose={close} size="sm">
       <p class="summary-book">{s.title}</p>
       <div class="summary-grid">
         <div>
           <strong>{fmtDuration(s.ms, true)}</strong>
-          <span class="muted small">leyendo</span>
+          <span class="muted small">{t('leyendo')}</span>
         </div>
         <div>
           <strong>{fmtNum(s.words)}</strong>
-          <span class="muted small">palabras</span>
+          <span class="muted small">{t('palabras')}</span>
         </div>
         <div>
           <strong>{s.readFraction > 0 && s.readFraction < 0.01 ? '<1' : Math.round(s.readFraction * 100)}%</strong>
-          <span class="muted small">del libro</span>
+          <span class="muted small">{t('del libro')}</span>
         </div>
         {game && (
           <div>
@@ -51,7 +52,12 @@ export function SessionSummarySheet() {
       <div class="summary-progress">
         <Bar value={s.progress} />
         <span class="muted small">
-          Vas en el {Math.round(s.progress * 100)}%{s.chapters ? ` · ${s.chapters} ${s.chapters === 1 ? 'capítulo terminado' : 'capítulos terminados'}` : ''}
+          {s.chapters
+            ? t(s.chapters === 1 ? 'Vas en el {p}% · {n} capítulo terminado' : 'Vas en el {p}% · {n} capítulos terminados', {
+                p: Math.round(s.progress * 100),
+                n: s.chapters,
+              })
+            : t('Vas en el {p}%', { p: Math.round(s.progress * 100) })}
         </span>
       </div>
       {s.celebrations.length > 0 && (
@@ -68,7 +74,7 @@ export function SessionSummarySheet() {
         </ul>
       )}
       <button type="button" class="btn btn-primary btn-block" onClick={close}>
-        Listo
+        {t('Listo')}
       </button>
     </Sheet>
   )
@@ -85,13 +91,13 @@ export function FinishedSheet({ book, onClose }: { book: BookRecord; onClose: ()
     if (!stats) return
     try {
       const blob = await shareCard(book, stats)
-      await saveFile(blob, `${book.title.replace(/[\\/:*?"<>|]+/g, '').slice(0, 60) || 'libro'} - Lunaria.png`)
+      await saveFile(blob, `${book.title.replace(/[\\/:*?"<>|]+/g, '').slice(0, 60) || t('libro')} - Lunaria.png`)
     } catch (e) {
-      error('No se pudo crear la tarjeta', e instanceof Error ? e.message : undefined)
+      error(t('No se pudo crear la tarjeta'), e instanceof Error ? e.message : undefined)
     }
   }
   return (
-    <Sheet title="Libro terminado" onClose={onClose} size="sm">
+    <Sheet title={t('Libro terminado')} onClose={onClose} size="sm">
       <div class="exlibris">
         <span class="exlibris-orn" aria-hidden="true">
           ❦
@@ -99,49 +105,49 @@ export function FinishedSheet({ book, onClose }: { book: BookRecord; onClose: ()
         <span class="eyebrow">Ex libris</span>
         <strong class="exlibris-title">{book.title}</strong>
         {book.authors[0] && <span class="muted">{book.authors.join(', ')}</span>}
-        {when && <span class="muted small">Terminado el {when}</span>}
+        {when && <span class="muted small">{t('Terminado el {date}', { date: when })}</span>}
       </div>
       {stats && (
         <div class="summary-grid">
           <div>
             <strong>{fmtDuration(stats.timeMs, true)}</strong>
-            <span class="muted small">en total</span>
+            <span class="muted small">{t('en total')}</span>
           </div>
           <div>
             <strong>{Math.max(1, stats.days)}</strong>
-            <span class="muted small">{stats.days > 1 ? 'días' : 'día'} de lectura</span>
+            <span class="muted small">{stats.days > 1 ? t('días de lectura') : t('día de lectura')}</span>
           </div>
           <div>
             <strong>{fmtNum(book.totalWords)}</strong>
-            <span class="muted small">palabras</span>
+            <span class="muted small">{t('palabras')}</span>
           </div>
           {stats.wpm && (
             <div>
               <strong>{stats.wpm}</strong>
-              <span class="muted small">palabras/min</span>
+              <span class="muted small">{t('palabras/min')}</span>
             </div>
           )}
           <div>
             <strong>{stats.highlights}</strong>
-            <span class="muted small">subrayados</span>
+            <span class="muted small">{t('subrayados')}</span>
           </div>
           <div>
             <strong>{stats.notes}</strong>
-            <span class="muted small">notas</span>
+            <span class="muted small">{t('notas')}</span>
           </div>
         </div>
       )}
       {stats?.firstDay && stats.lastDay && stats.firstDay !== stats.lastDay && (
         <p class="muted small center">
-          Del {fmtDate(stats.firstDay + 'T12:00')} al {fmtDate(stats.lastDay + 'T12:00')}
+          {t('Del {from} al {to}', { from: fmtDate(stats.firstDay + 'T12:00'), to: fmtDate(stats.lastDay + 'T12:00') })}
         </p>
       )}
       <div class="btn-row">
         <button type="button" class="btn" disabled={!stats} onClick={() => void share()}>
-          <Share2 size={16} /> Guardar tarjeta
+          <Share2 size={16} /> {t('Guardar tarjeta')}
         </button>
         <button type="button" class="btn btn-primary" onClick={onClose}>
-          Cerrar
+          {t('Cerrar')}
         </button>
       </div>
     </Sheet>
@@ -203,12 +209,12 @@ export async function shareCard(book: BookRecord, stats: BookStats): Promise<Blo
   }
   ctx.fillStyle = vars['--muted']
   ctx.font = `34px ${sans}`
-  if (book.finishedAt) ctx.fillText(`Terminado el ${fmtDate(book.finishedAt)}`, W / 2, y + 40)
+  if (book.finishedAt) ctx.fillText(t('Terminado el {date}', { date: fmtDate(book.finishedAt) }), W / 2, y + 40)
   const rows: [string, string][] = [
-    [fmtDuration(stats.timeMs, true), 'de lectura'],
-    [String(Math.max(1, stats.days)), stats.days > 1 ? 'días' : 'día'],
-    [fmtNum(book.totalWords), 'palabras'],
-    [String(stats.highlights), 'subrayados'],
+    [fmtDuration(stats.timeMs, true), t('de lectura')],
+    [String(Math.max(1, stats.days)), t(stats.days > 1 ? 'días' : 'día')],
+    [fmtNum(book.totalWords), t('palabras')],
+    [String(stats.highlights), t('subrayados')],
   ]
   const top = Math.max(y + 140, 900)
   rows.forEach(([value, label], i) => {

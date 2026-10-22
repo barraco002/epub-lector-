@@ -1,6 +1,7 @@
 import { signal } from '@preact/signals'
 import { fonts as fontStore, type CustomFont } from './db'
 import { uid } from './util'
+import { t } from './i18n'
 
 export type FontCategory = 'serif' | 'sans' | 'mono' | 'display' | 'access' | 'system' | 'custom'
 
@@ -103,7 +104,7 @@ export async function addCustomFont(file: File): Promise<FontDef> {
   const name = file.name.replace(/\.(ttf|otf|woff2?)$/i, '').replace(/[-_]+/g, ' ')
   const font: CustomFont = { id: `font-${uid()}`, name, data: file, addedAt: Date.now() }
   const def = await registerCustom(font)
-  if (!def) throw new Error('No se pudo leer la fuente. Usa archivos .ttf, .otf, .woff o .woff2.')
+  if (!def) throw new Error(t('No se pudo leer la fuente. Usa archivos .ttf, .otf, .woff o .woff2.'))
   await fontStore.put(font)
   customFonts.value = [...customFonts.value, def]
   return def

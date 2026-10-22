@@ -156,7 +156,7 @@ Ideas, not promises. 🤞
 - [x] Android APK and a single-file desktop build
 - [x] Pomodoro with an alarm and background sound
 - [x] Vocabulary with spaced repetition
-- [ ] English UI (the app is Spanish-only today)
+- [x] English and Spanish UI, switchable in Settings
 - [ ] Accessibility audit with screen readers
 - [ ] Optional encrypted backup to a folder of your choice
 

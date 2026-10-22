@@ -8,6 +8,7 @@ import { ThemePanel } from './panels/Themes'
 import { SoundPanel } from './panels/Sounds'
 import { PomodoroPanel } from './panels/Pomodoro'
 import { SearchPanel, TocPanel } from './panels/Navigation'
+import { t } from '../../lib/i18n'
 
 function AutoPanel() {
   const ctx = active.value!
@@ -25,29 +26,29 @@ function AutoPanel() {
           else ctx.auto.start()
         }}
       >
-        {running ? <Pause size={18} /> : <Play size={18} />} {running ? 'Salir del modo auto' : 'Empezar autoscroll'}
+        {running ? <Pause size={18} /> : <Play size={18} />} {running ? t('Salir del modo auto') : t('Empezar autoscroll')}
       </button>
-      <Section title="Modo">
+      <Section title={t('Modo')}>
         <Segmented
-          label="Modo"
+          label={t('Modo')}
           value={s.autoMode}
           onChange={(autoMode) => {
             update({ autoMode })
             ctx.auto.restart()
           }}
           options={[
-            { value: 'smooth', label: 'Continuo' },
-            { value: 'screen', label: 'Por pantallas' },
+            { value: 'smooth', label: t('Continuo') },
+            { value: 'screen', label: t('Por pantallas') },
           ]}
         />
-        <p class="muted small">{s.autoMode === 'smooth' ? 'El texto sube despacio y sin pausa.' : 'Pasa una pantalla cada pocos segundos (gasta menos batería).'}</p>
+        <p class="muted small">{s.autoMode === 'smooth' ? t('El texto sube despacio y sin pausa.') : t('Pasa una pantalla cada pocos segundos (gasta menos batería).')}</p>
       </Section>
-      <Section title="Velocidad">
-        <Slider label="Palabras por minuto" value={s.autoWpm} min={40} max={800} step={10} format={(v) => `${v} ppm`} onInput={(autoWpm) => update({ autoWpm })} />
+      <Section title={t('Velocidad')}>
+        <Slider label={t('Palabras por minuto')} value={s.autoWpm} min={40} max={800} step={10} format={(v) => t('{n} ppm', { n: v })} onInput={(autoWpm) => update({ autoWpm })} />
         <button type="button" class="link-btn" onClick={() => update({ autoWpm: Math.round(readingWpm.value / 10) * 10 })}>
-          Usar mi velocidad medida ({readingWpm.value} ppm)
+          {t('Usar mi velocidad medida ({n} ppm)', { n: readingWpm.value })}
         </button>
-        <p class="muted small">Toca el texto para pausar y otra vez para seguir. En Android, las teclas de volumen cambian la velocidad. En el PC: A para empezar/salir y +/− para la velocidad.</p>
+        <p class="muted small">{t('Toca el texto para pausar y otra vez para seguir. En Android, las teclas de volumen cambian la velocidad. En el PC: A para empezar/salir y +/− para la velocidad.')}</p>
       </Section>
     </div>
   )
@@ -70,7 +71,7 @@ export function Panels() {
   // Los paneles de ajuste no oscurecen el texto: así se ve el cambio en vivo
   const live = id === 'typo' || id === 'theme' || id === 'auto'
   return (
-    <Sheet title={TITLES[id]} onClose={close} scrim={!live} size={id === 'toc' || id === 'search' ? 'lg' : 'md'}>
+    <Sheet title={t(TITLES[id])} onClose={close} scrim={!live} size={id === 'toc' || id === 'search' ? 'lg' : 'md'}>
       {id === 'typo' && <TypographyPanel />}
       {id === 'theme' && <ThemePanel />}
       {id === 'sound' && <SoundPanel />}

@@ -1,14 +1,48 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Lunaria</string>
-    <string name="title_activity_main">Lunaria</string>
-    <string name="package_name">com.lunaria.lector</string>
-    <string name="custom_url_scheme">com.lunaria.lector</string>
-    <string name="sc_continuar">Continuar</string>
-    <string name="sc_continuar_largo">Seguir leyendo</string>
+    <!-- Brand and identifiers: never translated -->
+    <string name="app_name" translatable="false">Lunaria</string>
+    <string name="title_activity_main" translatable="false">Lunaria</string>
+    <string name="package_name" translatable="false">com.lunaria.lector</string>
+    <string name="custom_url_scheme" translatable="false">com.lunaria.lector</string>
+
+    <!-- Shortcuts (long-press the app icon) -->
+    <string name="sc_continuar">Continue</string>
+    <string name="sc_continuar_largo">Keep reading</string>
     <string name="sc_pomodoro">Pomodoro</string>
-    <string name="sc_pomodoro_largo">Leer con pomodoro</string>
-    <string name="sc_lluvia">Lluvia</string>
-    <string name="sc_lluvia_largo">Leer con lluvia</string>
-    <string name="widget_desc">Tu racha, la meta de hoy y el libro en curso</string>
+    <string name="sc_pomodoro_largo">Read with Pomodoro</string>
+    <string name="sc_lluvia">Rain</string>
+    <string name="sc_lluvia_largo">Read with rain</string>
+
+    <!-- Home screen widget -->
+    <string name="widget_label">Lunaria: streak and reading</string>
+    <string name="widget_desc">Your streak, today\'s goal and the book you\'re reading</string>
+    <string name="widget_goal_met">Goal reached! · %1$d min</string>
+    <string name="widget_goal_progress">%1$d / %2$d min today</string>
+    <string name="widget_open_book">Open a book to start</string>
+
+    <!-- Pomodoro notifications -->
+    <string name="pomo_channel_running">Pomodoro in progress</string>
+    <string name="pomo_channel_running_desc">Countdown for the current phase</string>
+    <string name="pomo_channel_end">End of Pomodoro</string>
+    <string name="pomo_channel_end_desc">Alert when a focus or break phase ends</string>
+    <string name="pomo_default_title">Pomodoro</string>
+    <string name="pomo_phase_done">Phase complete</string>
+
+    <!-- Ambient sound -->
+    <string name="ambient_title">Ambient sound</string>
+    <string name="ambient_channel_desc">Controls while sound plays with the screen off</string>
+    <string name="ambient_still_playing">Still playing with the screen off</string>
+    <string name="ambient_pause">Pause</string>
+
+    <!-- Native dialogs and error messages -->
+    <string name="share_chooser_title">Save or share</string>
+    <string name="translate_chooser_title">Translate with…</string>
+    <string name="epub_fallback_name">book.epub</string>
+    <string name="err_unpin">Could not unpin the app</string>
+    <string name="err_share_failed">Could not share the file</string>
+    <string name="err_no_translate_app">No translation apps installed</string>
+    <string name="err_missing_ends_at">Missing endsAt</string>
+    <string name="err_backup_write">Could not save the automatic backup</string>
+    <string name="err_backup_read">Could not read the automatic backup</string>
 </resources>

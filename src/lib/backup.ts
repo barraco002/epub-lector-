@@ -10,6 +10,7 @@ import { saveFile } from './native'
 import { loadVocab, vocab, type VocabWord } from './vocab'
 import type { Theme } from './themes'
 import type { TypoPreset } from './settings'
+import { t } from './i18n'
 
 export interface Backup {
   app: 'lunaria'
@@ -27,7 +28,7 @@ export interface Backup {
 
 export async function exportBackup() {
   const data = await backupData()
-  await saveFile(new Blob([JSON.stringify(data)], { type: 'application/json' }), `lunaria-copia-${dayKey()}.json`)
+  await saveFile(new Blob([JSON.stringify(data)], { type: 'application/json' }), t('lunaria-copia-{date}.json', { date: dayKey() }))
 }
 
 /** Todo menos los EPUB: pocos KB, cabe en la copia automática de Android. */
@@ -54,7 +55,7 @@ export async function importBackup(file: File): Promise<string> {
 }
 
 export async function restoreData(data: Backup): Promise<string> {
-  if (data?.app !== 'lunaria') throw new Error('El archivo no es una copia de Lunaria')
+  if (data?.app !== 'lunaria') throw new Error(t('El archivo no es una copia de Lunaria'))
   replaceSettings(data.settings)
   await saveCustomThemes(data.themes ?? [])
   await saveCustomPresets(data.presets ?? [])
@@ -88,5 +89,7 @@ export async function restoreData(data: Backup): Promise<string> {
   }
   await refreshLibrary()
   const pending = Object.keys(orphans).length
-  return `Copia restaurada: ${restored} libros actualizados${pending ? `, ${pending} pendientes (impórtalos y recuperarán su progreso)` : ''}.`
+  return pending
+    ? t('Copia restaurada: {restored} libros actualizados, {pending} pendientes (impórtalos y recuperarán su progreso).', { restored, pending })
+    : t('Copia restaurada: {restored} libros actualizados.', { restored })
 }

@@ -4,6 +4,7 @@ import { importEpub } from './importer'
 import { error, info, toast } from './toasts'
 import { libraryCount, recheck } from './game/game'
 import { saveFile } from './native'
+import { locale, t } from './i18n'
 
 export const library = signal<BookRecord[]>([])
 export const importing = signal<{ name: string; progress: number; index: number; total: number } | null>(null)
@@ -44,7 +45,7 @@ export async function importFiles(files: File[]): Promise<BookRecord | null> {
   // Algunos gestores de archivos de Android no dan extensión ni tipo: el parser valida el resto
   const epubs = files.filter((f) => /\.epub$/i.test(f.name) || /epub|zip|octet-stream/.test(f.type) || (!f.type && !/\.\w{2,4}$/.test(f.name)))
   if (!epubs.length) {
-    error('Solo se pueden importar archivos .epub')
+    error(t('Solo se pueden importar archivos .epub'))
     return null
   }
   let last: BookRecord | null = null
@@ -57,7 +58,7 @@ export async function importFiles(files: File[]): Promise<BookRecord | null> {
       const { record, duplicate } = await importEpub(file, file.name, (p) => {
         importing.value = { name: file.name, progress: p, index: i, total: epubs.length }
       })
-      if (duplicate) info('Ya está en tu biblioteca', record.title)
+      if (duplicate) info(t('Ya está en tu biblioteca'), record.title)
       else {
         added++
         const orphan = orphans[record.id]
@@ -69,13 +70,13 @@ export async function importFiles(files: File[]): Promise<BookRecord | null> {
       }
       last = record
     } catch (e) {
-      error(`No se pudo abrir «${file.name}»`, e instanceof Error ? e.message : undefined)
+      error(t('No se pudo abrir «{name}»', { name: file.name }), e instanceof Error ? e.message : undefined)
     }
   }
   importing.value = null
   await refreshLibrary()
   if (added) {
-    toast({ kind: 'info', icon: '📚', title: added === 1 ? 'Libro añadido' : `${added} libros añadidos` })
+    toast({ kind: 'info', icon: '📚', title: added === 1 ? t('Libro añadido') : t('{n} libros añadidos', { n: added }) })
     recheck()
   }
   return last
@@ -107,21 +108,21 @@ export async function setStatus(id: string, status: BookRecord['status']) {
 export async function exportHighlights(book: BookRecord) {
   const list = (await annotations.forBook(book.id)).filter((a) => a.kind === 'highlight').sort((a, b) => a.s - b.s || a.start - b.start)
   if (!list.length) {
-    info('Este libro aún no tiene subrayados')
+    info(t('Este libro aún no tiene subrayados'))
     return
   }
   let md = `# ${book.title}\n\n${book.authors.join(', ')}\n\n`
   for (const a of list) {
     md += `> ${a.text.replace(/\n+/g, '\n> ')}\n\n`
     if (a.note) md += `${a.note}\n\n`
-    md += `— *capítulo ${a.s + 1}, ${new Date(a.createdAt).toLocaleDateString('es')}*\n\n---\n\n`
+    md += `— *${t('capítulo {n}, {date}', { n: a.s + 1, date: new Date(a.createdAt).toLocaleDateString(locale()) })}*\n\n---\n\n`
   }
-  await saveFile(new Blob([md], { type: 'text/markdown' }), `${book.title.replace(/[\\/:*?"<>|]+/g, '')} — subrayados.md`)
+  await saveFile(new Blob([md], { type: 'text/markdown' }), `${book.title.replace(/[\\/:*?"<>|]+/g, '')} — ${t('subrayados')}.md`)
 }
 
 export function sortBooks(list: BookRecord[], by: 'recent' | 'title' | 'author' | 'progress' | 'added') {
   const arr = [...list]
-  const collator = new Intl.Collator('es', { sensitivity: 'base', numeric: true })
+  const collator = new Intl.Collator(locale(), { sensitivity: 'base', numeric: true })
   switch (by) {
     case 'title':
       return arr.sort((a, b) => collator.compare(a.title, b.title))

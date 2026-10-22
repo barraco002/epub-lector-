@@ -2,6 +2,7 @@ import { books, type BookRecord } from './db'
 import { openEpub, resourceType, type EpubBook } from './epub/book'
 import { chapterText, prepareChapter } from './epub/chapter'
 import { countWords, fileId } from './util'
+import { t } from './i18n'
 
 export const yieldToMain = () => {
   const s = (globalThis as { scheduler?: { yield?: () => Promise<void> } }).scheduler
@@ -61,7 +62,7 @@ export async function importEpub(file: Blob, fileName: string, onProgress?: (p: 
   const fallbackTitle = fileName.replace(/\.epub$/i, '').replace(/[_-]+/g, ' ').trim()
   const record: BookRecord = {
     id,
-    title: meta.title && meta.title !== 'Sin título' ? meta.title : fallbackTitle || 'Sin título',
+    title: meta.title && meta.title !== t('Sin título') ? meta.title : fallbackTitle || t('Sin título'),
     authors: meta.authors,
     language: meta.language,
     publisher: meta.publisher,

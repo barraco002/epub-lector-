@@ -13,6 +13,7 @@ import { caretFromPoint, TextIndex } from '../textindex'
 import type { Annotation, ChapterStats, Position } from '../db'
 import { yieldToMain } from '../importer'
 import { throttle } from '../util'
+import { t } from '../i18n'
 
 export interface EngineCallbacks {
   onPosition?: (pos: Position, info: PositionInfo) => void
@@ -520,7 +521,7 @@ export class ReaderEngine {
       if (url) res.setAttribute('src', url)
     }
     frag.append(clone)
-    return { html: frag, title: 'Nota' }
+    return { html: frag, title: t('Nota') }
   }
 
   // ——— Subrayados ———

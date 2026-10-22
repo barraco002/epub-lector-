@@ -3,6 +3,7 @@
 import { computed, signal } from '@preact/signals'
 import { days as dayStore, kv, type BookRecord, type DayStats } from '../db'
 import { settings } from '../settings'
+import { t } from '../i18n'
 import { toast } from '../toasts'
 import { addDays, dayKey, daysBetween, debounce, fmtNum } from '../util'
 import { ACHIEVEMENTS, emptyProfile, type AchievementCtx, type Profile } from './achievements'
@@ -77,7 +78,7 @@ function gainXp(amount: number, p: Profile, d: DayStats) {
 function levelCheck(before: number) {
   const after = level.value.level
   if (after > before) {
-    toast({ kind: 'level', icon: '⭐', title: `¡Nivel ${after}!`, body: levelTitle(after) })
+    toast({ kind: 'level', icon: '⭐', title: t('¡Nivel {n}!', { n: after }), body: levelTitle(after) })
   }
 }
 
@@ -101,7 +102,7 @@ function checkAchievements(p: Profile, d: DayStats) {
     if (!ok) continue
     p.achievements[a.id] = Date.now()
     gainXp(a.xp, p, d)
-    toast({ kind: 'achievement', icon: a.icon, title: `Logro: ${a.name}`, body: `${a.desc} · +${a.xp} XP` })
+    toast({ kind: 'achievement', icon: a.icon, title: t('Logro: {name}', { name: t(a.name) }), body: t('{desc} · +{xp} XP', { desc: t(a.desc, a.descVars), xp: a.xp }) })
   }
 }
 
@@ -139,8 +140,11 @@ function onGoalMet(p: Profile, d: DayStats) {
   toast({
     kind: 'goal',
     icon: '🔥',
-    title: s.count > 1 ? `¡Meta cumplida! Racha de ${s.count} días` : '¡Meta diaria cumplida!',
-    body: `+${XP.dailyGoal + bonus} XP${s.count % 7 === 0 ? ' · ganaste un comodín de racha 🧊' : ''}`,
+    title: s.count > 1 ? t('¡Meta cumplida! Racha de {n} días', { n: s.count }) : t('¡Meta diaria cumplida!'),
+    body:
+      s.count % 7 === 0
+        ? t('+{xp} XP · ganaste un comodín de racha 🧊', { xp: XP.dailyGoal + bonus })
+        : t('+{xp} XP', { xp: XP.dailyGoal + bonus }),
   })
 }
 
@@ -195,7 +199,7 @@ export function bookFinished(book: BookRecord) {
     p.biggestBookWords = Math.max(p.biggestBookWords, book.totalWords)
     gainXp(bonus, p, d)
   })
-  toast({ kind: 'achievement', icon: '📕', title: `¡Terminaste «${book.title}»!`, body: `${fmtNum(book.totalWords)} palabras · +${bonus} XP` })
+  toast({ kind: 'achievement', icon: '📕', title: t('¡Terminaste «{title}»!', { title: book.title }), body: t('{n} palabras · +{xp} XP', { n: fmtNum(book.totalWords), xp: bonus }) })
 }
 
 export type TrackEvent = 'highlight' | 'lookup' | 'theme' | 'font'

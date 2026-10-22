@@ -5,6 +5,7 @@ import { pomo, remainingMs, skip, start, PHASE_LABEL } from '../../lib/pomodoro'
 import { fmtClock } from '../../lib/util'
 import { IconButton, Sheet, useCloser } from '../ui'
 import { useTicker } from './Chrome'
+import { t } from '../../lib/i18n'
 
 export interface FootnoteData {
   html: DocumentFragment
@@ -28,7 +29,7 @@ export function FootnotePopup({ note, onClose }: { note: FootnoteData; onClose: 
           void active.value?.jump(note.target)
         }}
       >
-        Ir a la nota en el texto
+        {t('Ir a la nota en el texto')}
       </button>
     </Sheet>
   )
@@ -39,8 +40,8 @@ export function ImageViewer({ src, alt, onClose }: { src: string; alt: string; o
   const [zoom, setZoom] = useState(false)
   useCloser(onClose)
   return (
-    <div class="image-viewer" role="dialog" aria-label={alt || 'Imagen'}>
-      <IconButton label="Cerrar" class="image-close" onClick={onClose}>
+    <div class="image-viewer" role="dialog" aria-label={alt || t('Imagen')}>
+      <IconButton label={t('Cerrar')} class="image-close" onClick={onClose}>
         <X size={22} />
       </IconButton>
       <div class={`image-stage ${zoom ? 'is-zoom' : ''}`} onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -65,15 +66,15 @@ export function BreakOverlay({ onClose }: { onClose: () => void }) {
   const [tip] = useState(() => TIPS[Math.floor(Math.random() * TIPS.length)])
   const onBreak = st.phase !== 'focus'
   return (
-    <div class="break-overlay" role="dialog" aria-label="Descanso">
+    <div class="break-overlay" role="dialog" aria-label={t('Descanso')}>
       <div class="break-card">
         <Coffee size={40} />
-        <h2>{onBreak ? PHASE_LABEL[st.phase] : '¡Buen trabajo!'}</h2>
-        {onBreak && <p class="break-time">{st.running ? fmtClock(remainingMs()) : 'Listo para empezar'}</p>}
-        <p class="muted">{tip}</p>
+        <h2>{onBreak ? t(PHASE_LABEL[st.phase]) : t('¡Buen trabajo!')}</h2>
+        {onBreak && <p class="break-time">{st.running ? fmtClock(remainingMs()) : t('Listo para empezar')}</p>}
+        <p class="muted">{t(tip)}</p>
         <div class="btn-row">
           <button type="button" class="btn" onClick={onClose}>
-            Ocultar
+            {t('Ocultar')}
           </button>
           {onBreak && (
             <button
@@ -85,7 +86,7 @@ export function BreakOverlay({ onClose }: { onClose: () => void }) {
                 onClose()
               }}
             >
-              Seguir leyendo
+              {t('Seguir leyendo')}
             </button>
           )}
         </div>

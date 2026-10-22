@@ -42,7 +42,7 @@ If Playwright complains about browsers, run `npx playwright install chromium`.
 
 - Open an EPUB that breaks the reader and report it (or add it as a test fixture).
 - Find a button without an accessible label and fix it.
-- Help with an English UI: the app is Spanish-only today, so the strings are a great place to start.
+- Translations: the UI ships in English and Spanish. A new language needs a dictionary like the ones in `src/lib/i18n/` and a line in `src/lib/i18n.ts`.
 - Spot something confusing in the docs? Fix it. Docs PRs are real contributions.
 
 ## 🙌 Code of conduct

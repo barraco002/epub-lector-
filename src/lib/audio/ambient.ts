@@ -7,6 +7,7 @@ import { audio, hold, release } from './context'
 import BakeWorker from './bake.worker?worker&inline'
 import type { BakeInput, BakeRequest, BakeResponse } from './bake.worker'
 import { isNative, onAudioControl, setAudioActive } from '../native'
+import { t } from '../i18n'
 
 export interface Preset {
   id: string
@@ -276,7 +277,7 @@ effect(() => {
   const on = playing.value
   const screenOff = settings.value.sound.screenOff
   const preset = PRESETS.find((p) => sameMix(p.volumes, settings.value.sound.volumes))
-  const title = preset ? `${preset.icon} ${preset.name}` : 'Sonido ambiente'
+  const title = preset ? `${preset.icon} ${t(preset.name)}` : t('Sonido ambiente')
   // Solo cuando cambia algo que le importa al sistema (no en cada ajuste)
   const key = `${on}|${screenOff}|${on ? title : ''}`
   if (key === lastAudioState) return

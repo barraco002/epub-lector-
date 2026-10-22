@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <!-- Atajos (mantener pulsado el icono) -->
+    <string name="sc_continuar">Continuar</string>
+    <string name="sc_continuar_largo">Seguir leyendo</string>
+    <string name="sc_pomodoro">Pomodoro</string>
+    <string name="sc_pomodoro_largo">Leer con pomodoro</string>
+    <string name="sc_lluvia">Lluvia</string>
+    <string name="sc_lluvia_largo">Leer con lluvia</string>
+
+    <!-- Widget de inicio -->
+    <string name="widget_label">Lunaria: racha y lectura</string>
+    <string name="widget_desc">Tu racha, la meta de hoy y el libro en curso</string>
+    <string name="widget_goal_met">¡Meta cumplida! · %1$d min</string>
+    <string name="widget_goal_progress">%1$d / %2$d min hoy</string>
+    <string name="widget_open_book">Abre un libro para empezar</string>
+
+    <!-- Notificaciones del pomodoro -->
+    <string name="pomo_channel_running">Pomodoro en curso</string>
+    <string name="pomo_channel_running_desc">Cuenta atrás de la fase actual</string>
+    <string name="pomo_channel_end">Fin de pomodoro</string>
+    <string name="pomo_channel_end_desc">Aviso al terminar el enfoque o el descanso</string>
+    <string name="pomo_default_title">Pomodoro</string>
+    <string name="pomo_phase_done">Fase terminada</string>
+
+    <!-- Sonido ambiente -->
+    <string name="ambient_title">Sonido ambiente</string>
+    <string name="ambient_channel_desc">Controles mientras suena con la pantalla apagada</string>
+    <string name="ambient_still_playing">Sigue sonando con la pantalla apagada</string>
+    <string name="ambient_pause">Pausar</string>
+
+    <!-- Diálogos nativos y mensajes de error -->
+    <string name="share_chooser_title">Guardar o compartir</string>
+    <string name="translate_chooser_title">Traducir con…</string>
+    <string name="epub_fallback_name">libro.epub</string>
+    <string name="err_unpin">No se pudo dejar de fijar la app</string>
+    <string name="err_share_failed">No se pudo compartir el archivo</string>
+    <string name="err_no_translate_app">No hay apps de traducción instaladas</string>
+    <string name="err_missing_ends_at">Falta endsAt</string>
+    <string name="err_backup_write">No se pudo guardar la copia automática</string>
+    <string name="err_backup_read">No se pudo leer la copia automática</string>
+</resources>

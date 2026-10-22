@@ -3,6 +3,7 @@
 // Estructura inspirada en el parser de foliate-js (MIT, © John Factotum).
 import { unzip, type Unzipped } from 'fflate'
 import { mimeFromPath, normalizePath, resolveHref } from './paths'
+import { t } from '../i18n'
 
 const NS = {
   DC: 'http://purl.org/dc/elements/1.1/',
@@ -125,7 +126,7 @@ export async function openEpub(data: Uint8Array): Promise<EpubBook> {
   try {
     raw = await unzipAsync(data)
   } catch {
-    throw new EpubError('El archivo no es un EPUB válido (no se pudo descomprimir).')
+    throw new EpubError(t('El archivo no es un EPUB válido (no se pudo descomprimir).'))
   }
   // Normalizamos nombres: sin barra inicial
   const files: Unzipped = {}
@@ -146,7 +147,7 @@ export async function openEpub(data: Uint8Array): Promise<EpubBook> {
   }
   // EPUB sin container.xml: buscamos cualquier .opf
   opfPath ??= Object.keys(files).find((n) => n.toLowerCase().endsWith('.opf')) ?? null
-  if (!opfPath) throw new EpubError('No se encontró el paquete OPF del EPUB.')
+  if (!opfPath) throw new EpubError(t('No se encontró el paquete OPF del EPUB.'))
 
   const opf = parseXml(readText({ files }, opfPath) ?? '')
   const pkg = opf.documentElement
@@ -183,11 +184,11 @@ export async function openEpub(data: Uint8Array): Promise<EpubBook> {
       linear: ref.getAttribute('linear') !== 'no',
     })
   }
-  if (!spine.length) throw new EpubError('El EPUB no tiene capítulos legibles.')
+  if (!spine.length) throw new EpubError(t('El EPUB no tiene capítulos legibles.'))
   const spineByPath = new Map(spine.map((s) => [s.path, s.index]))
 
   const metadata: BookMetadata = {
-    title: textOf(dcAll(opf, 'title')[0]) || 'Sin título',
+    title: textOf(dcAll(opf, 'title')[0]) || t('Sin título'),
     authors: dcAll(opf, 'creator').map(textOf).filter(Boolean),
     language: textOf(dcAll(opf, 'language')[0]),
     publisher: textOf(dcAll(opf, 'publisher')[0]),
@@ -219,7 +220,7 @@ export async function openEpub(data: Uint8Array): Promise<EpubBook> {
   }
   if (!book.toc.length) {
     book.toc = spine.map((s) => ({
-      label: `Sección ${s.index + 1}`,
+      label: t('Sección {n}', { n: s.index + 1 }),
       path: s.path,
       fragment: '',
       spine: s.index,
@@ -237,7 +238,7 @@ function makeTocItem(book: EpubBook, label: string, href: string | null, from: s
   const path = resolved ? (book.find(resolved.path) ?? resolved.path) : ''
   const spineIndex = book.spineByPath.get(path)
   return {
-    label: label || 'Sin título',
+    label: label || t('Sin título'),
     path,
     fragment: resolved?.fragment ?? '',
     spine: spineIndex ?? -1,

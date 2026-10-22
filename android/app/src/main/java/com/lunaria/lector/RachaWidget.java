@@ -45,10 +45,12 @@ public class RachaWidget extends AppWidgetProvider {
 
         RemoteViews v = new RemoteViews(ctx.getPackageName(), R.layout.widget_racha);
         v.setTextViewText(R.id.w_racha, "🔥 " + racha);
-        v.setTextViewText(R.id.w_hoy, minutos >= meta ? "¡Meta cumplida! · " + minutos + " min" : minutos + " / " + meta + " min hoy");
+        v.setTextViewText(R.id.w_hoy, minutos >= meta
+            ? ctx.getString(R.string.widget_goal_met, minutos)
+            : ctx.getString(R.string.widget_goal_progress, minutos, meta));
         v.setProgressBar(R.id.w_meta, meta, Math.min(minutos, meta), false);
         if (libro.isEmpty()) {
-            v.setTextViewText(R.id.w_libro, "Abre un libro para empezar");
+            v.setTextViewText(R.id.w_libro, ctx.getString(R.string.widget_open_book));
             v.setViewVisibility(R.id.w_progreso, View.GONE);
         } else {
             v.setTextViewText(R.id.w_libro, libro);
