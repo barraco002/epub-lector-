@@ -14,12 +14,12 @@ import { bgImageUrl } from '../../lib/background'
 import * as ambient from '../../lib/audio/ambient'
 import { inBreak, pomoEvent, inFocus } from '../../lib/pomodoro'
 import * as pomodoro from '../../lib/pomodoro'
-import { prefersReducedMotion, throttle } from '../../lib/util'
+import { numbersItself, prefersReducedMotion, throttle } from '../../lib/util'
 import { error as toastError, pendingCelebrations } from '../../lib/toasts'
 import { flushGame, profile } from '../../lib/game/game'
 import { sessionSummary } from '../../lib/summary'
-import { active, bookAnnotations, chrome, flattenToc, hereMark, openPanel, panel, position, returnSpot, type ActiveReader } from './state'
-import { BottomBar, EdgeProgress, StatusLine, TopBar, AutoPill, ReturnChip, HereMark } from './Chrome'
+import { active, bookAnnotations, chapterPill, chrome, flattenToc, hereMark, openPanel, panel, position, returnSpot, type ActiveReader } from './state'
+import { BottomBar, ChapterPill, EdgeProgress, StatusLine, TopBar, AutoPill, ReturnChip, HereMark } from './Chrome'
 import { Panels } from './Panels'
 import { SelectionLayer } from './Selection'
 import { BreakOverlay, FootnotePopup, ImageViewer, type FootnoteData } from './Overlays'
@@ -35,10 +35,6 @@ export function Reader({ bookId }: { bookId: string }) {
   const [image, setImage] = useState<{ src: string; alt: string } | null>(null)
   const [breakShown, setBreakShown] = useState(false)
   const [finished, setFinished] = useState(false)
-  const [chapterPill, setChapterPill] = useState<{
-    key: number
-    text: string
-  } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -82,8 +78,9 @@ export function Reader({ bookId }: { bookId: string }) {
         const starts = labels.map((l, i) => (l ? i : -1)).filter((i) => i >= 0)
         const chapterHeader = (i: number) => {
           if (!settings.peek().chapterHeaders || !labels[i]) return null
+          // Si el título ya numera el capítulo, un «N de M» propio podría contradecirlo
           const n = starts.indexOf(i) + 1
-          return { label: `${n} de ${starts.length}`, title: labels[i] }
+          return { label: numbersItself(labels[i]) ? undefined : `${n} de ${starts.length}`, title: labels[i] }
         }
         const chapterLabel = (s: number) => {
           for (let i = s; i >= 0; i--) if (labels[i]) return labels[i]
@@ -100,7 +97,7 @@ export function Reader({ bookId }: { bookId: string }) {
               chapterProgress: info.chapterProgress,
             }
             // Aviso suave al cruzar a otro capítulo (no al abrir el libro)
-            if (ctx && pos.s !== prev && labels[pos.s] && settings.peek().chapterHeaders) setChapterPill({ key: Date.now(), text: labels[pos.s] })
+            if (ctx && pos.s !== prev && labels[pos.s] && settings.peek().chapterHeaders) chapterPill.value = { key: Date.now(), text: labels[pos.s] }
             ctx?.session.onPosition(pos, info)
             save(pos, info.progress)
           },
@@ -209,6 +206,7 @@ export function Reader({ bookId }: { bookId: string }) {
 
     return () => {
       cancelled = true
+      chapterPill.value = null
       for (const fn of cleanups) fn()
       if (ctx) {
         // Última posición emitida: al desmontar, el DOM puede no estar ya en la página para medirlo
@@ -585,11 +583,7 @@ export function Reader({ bookId }: { bookId: string }) {
       {status === 'ready' && (
         <>
           {s.focusMode === 'franja' && <div class="focus-band" aria-hidden="true" />}
-          {chapterPill && !chrome.value && (
-            <div class="ch-pill" key={chapterPill.key} aria-live="polite">
-              {chapterPill.text}
-            </div>
-          )}
+          <ChapterPill />
           <EdgeProgress />
           <StatusLine />
           <TopBar />

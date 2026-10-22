@@ -346,8 +346,9 @@ test('indicador de avance discreto y cabeceras de capítulo', async ({ page }) =
   expect(await page.locator('.edge-progress').evaluate((el) => el.getBoundingClientRect().top)).toBeGreaterThan(400)
   await page.keyboard.press('t')
   await page.getByRole('button', { name: 'Capítulo 5', exact: true }).click()
-  await expect(page.locator('section.ch[data-i="4"] .ch-head .ch-label')).toHaveText('5 de 40')
-  // El libro ya titula "Capítulo 5": la cabecera no lo repite
+  // El título ya numera el capítulo ("Capítulo 5"): ni «5 de 40» (podría contradecirlo) ni el título repetido
+  await expect(page.locator('section.ch[data-i="4"] .ch-head .ch-orn')).toHaveCount(1)
+  await expect(page.locator('section.ch[data-i="4"] .ch-head .ch-label')).toHaveCount(0)
   await expect(page.locator('section.ch[data-i="4"] .ch-head .ch-title')).toHaveCount(0)
 })
 

@@ -100,15 +100,16 @@
   display: block;
   width: 56px;
   height: 1px;
-  margin: 3.2em auto 2.6em;
+  margin: 2.2em auto 1.8em;
   background: var(--border);
 }
+/* Poco aire entre capítulos: el texto debe seguir fluyendo al pasar de uno a otro */
 #bk .ch-head {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.35em;
-  margin: 4.2em 0 2.4em;
+  margin: 2.2em 0 1.5em;
   font-family: var(--rfont);
   text-align: center;
   color: var(--muted);

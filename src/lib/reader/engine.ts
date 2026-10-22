@@ -19,8 +19,8 @@ export interface EngineCallbacks {
   onFootnote?: (note: { html: DocumentFragment; title: string; target: { s: number; fragment: string } }) => void
   onImage?: (src: string, alt: string) => void
   onChapterRendered?: (s: number) => void
-  /** Cabecera discreta al inicio de un capítulo (null = sin cabecera) */
-  chapterHeader?: (s: number) => { label: string; title: string } | null
+  /** Cabecera discreta al inicio de un capítulo (null = sin cabecera; sin label = solo el ornamento y el título) */
+  chapterHeader?: (s: number) => { label?: string; title: string } | null
   /** Navegación por un enlace interno (no cuenta como lectura) */
   onNavigate?: () => void
 }
@@ -253,17 +253,23 @@ export class ReaderEngine {
       const orn = document.createElement('span')
       orn.className = 'ch-orn'
       orn.textContent = '❦'
-      const label = document.createElement('span')
-      label.className = 'ch-label'
-      label.textContent = head.label
-      const title = document.createElement('span')
-      title.className = 'ch-title'
-      title.textContent = head.title
+      const parts: HTMLElement[] = [orn]
+      if (head.label) {
+        const label = document.createElement('span')
+        label.className = 'ch-label'
+        label.textContent = head.label
+        parts.push(label)
+      }
       // Si el libro ya abre con ese mismo título, no lo repetimos
       const norm = (t: string) => t.replace(/\s+/g, ' ').trim().toLowerCase()
       const firstHeading = body.querySelector('h1, h2, h3')?.textContent ?? ''
-      if (norm(firstHeading) === norm(head.title)) header.append(orn, label)
-      else header.append(orn, label, title)
+      if (norm(firstHeading) !== norm(head.title)) {
+        const title = document.createElement('span')
+        title.className = 'ch-title'
+        title.textContent = head.title
+        parts.push(title)
+      }
+      header.append(...parts)
       ch.section.replaceChildren(header, body)
     } else ch.section.replaceChildren(body)
     ch.section.style.height = ''

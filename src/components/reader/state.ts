@@ -31,6 +31,8 @@ export const searchQuery = signal('')
 export const returnSpot = signal<{ s: number; c: number; label: string } | null>(null)
 /** Marca "aquí ibas" tras pasar pantalla */
 export const hereMark = signal<{ key: number; top: number; left: number } | null>(null)
+/** Aviso suave al cruzar a otro capítulo con el scroll (lo pinta ChapterPill, sin volver a renderizar el lector) */
+export const chapterPill = signal<{ key: number; text: string } | null>(null)
 
 export function flattenToc(items: TocItem[], out: TocItem[] = []): TocItem[] {
   for (const it of items) {

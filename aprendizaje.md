@@ -49,6 +49,8 @@ Decisiones, patrones y trade-offs de esta iteración, pensados para reutilizarlo
 - **Cabecera discreta** al inicio de cada capítulo: un ornamento con filetes, «N de M» en versalitas y el título en cursiva. Va **fuera de `.bk-body`**, así que no entra en el índice de texto ni altera posiciones, subrayados o búsquedas.
 - **No se repite el título** si el libro ya abre el capítulo con ese mismo encabezado.
 - **Numeración real:** cuenta solo las entradas del índice (TOC), no los archivos del *spine*, que incluyen portadas y páginas partidas.
+- **Título que ya numera:** si el índice dice «Capítulo 2», no se añade «N de M»: el contador (posición en el índice) puede contradecir al libro, por ejemplo cuando el índice no tiene «Capítulo 1». `numbersItself` decide con el título.
+- **Flujo sin pausas:** el separador es un ornamento fino con poco aire, para que el texto siga fluyendo al pasar de un capítulo a otro. El aviso «Capítulo N» al cruzar es un componente propio: su cambio no vuelve a renderizar todo el lector.
 - **Píldora suave** al cruzar a otro capítulo con el scroll: aparece y se desvanece en 2,6 s, sin bloquear nada. Es útil con traducción, porque marca dónde empieza un texto nuevo.
 - **Trade-off:** la cabecera hace el capítulo un poco más alto, así que los saltos por el índice dejan el título del libro unos 120 px más abajo. Se ajustó el test correspondiente.
 

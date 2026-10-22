@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks'
 import { ArrowLeft, Bookmark, BookmarkCheck, Headphones, List, Maximize, Minimize, Minus, Moon, Palette, Pause, Play, Plus, Search, Sun, Timer, Type, Undo2, X } from 'lucide-preact'
-import { active, bookAnnotations, chrome, hereMark, openPanel, panel, position, returnSpot } from './state'
+import { active, bookAnnotations, chapterPill, chrome, hereMark, openPanel, panel, position, returnSpot } from './state'
 import { nightActive, settings, update } from '../../lib/settings'
 import { go, pushCloser } from '../../lib/router'
 import { goalProgress, readingWpm, today } from '../../lib/game/game'
@@ -89,6 +89,17 @@ export function TopBar() {
         <List size={20} />
       </IconButton>
     </header>
+  )
+}
+
+/** Aviso suave al cruzar a otro capítulo. Va en su propio componente: su cambio no vuelve a pintar todo el lector. */
+export function ChapterPill() {
+  const pill = chapterPill.value
+  if (!pill || chrome.value) return null
+  return (
+    <div class="ch-pill" key={pill.key} aria-live="polite">
+      {pill.text}
+    </div>
   )
 }
 

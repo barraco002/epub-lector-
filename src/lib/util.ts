@@ -144,3 +144,6 @@ export function daysBetween(a: string, b: string): number {
   const [y2, m2, d2] = b.split('-').map(Number)
   return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86_400_000)
 }
+
+/** ¿El título ya numera el capítulo («Capítulo 2», «2. El viaje», «Parte IV»)? Entonces no se le añade un «N de M» que podría contradecirlo. */
+export const numbersItself = (title: string) => /^(?:\p{L}+\.?\s+)?(?:\d+|[IVXLCDM]+)(?![\p{L}\d])/u.test(title.trim())
